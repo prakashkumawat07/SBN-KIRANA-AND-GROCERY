@@ -40,6 +40,6 @@ Store: `http://localhost:5173`
 Admin: `http://localhost:5174`  
 API: `http://localhost:5000`
 
-## Resume Description
+
 **SBN KIRANA AND GROCERY — Full Stack E-commerce Web Application**  
 Built a responsive grocery e-commerce platform using React, Node.js, Express and MongoDB with JWT authentication, product search/filtering, cart and checkout flows, order tracking, and a separate role-based admin dashboard for product CRUD, inventory, customers, orders and support messages.
