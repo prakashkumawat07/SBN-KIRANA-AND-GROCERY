@@ -1,0 +1,1 @@
+import {Navigate} from 'react-router-dom';import {useAdminAuth} from '../context/AdminAuthContext';export default function ProtectedAdmin({children}){const {admin}=useAdminAuth();return admin?.role==='admin'?children:<Navigate to="/login" replace/>}
