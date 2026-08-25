@@ -3,64 +3,24 @@ import {Link} from 'react-router-dom';
 import {api} from '../api';
 import ProductCard from '../components/ProductCard';
 
-const categories=[
-  ['🥦','Fresh Vegetables','Up to 20% off'],
-  ['🍎','Fresh Fruits','Farm picked'],
-  ['🥛','Dairy & Breakfast','Daily essentials'],
-  ['🍚','Atta, Rice & Dal','Kitchen staples'],
-  ['🥤','Cold Drinks & Juices','Chilled & ready'],
-  ['🧴','Home & Personal Care','Everyday care']
-];
+const categories=[['🥬','Vegetables'],['🍎','Fruits'],['🥛','Dairy'],['🌾','Atta & Grains'],['🍚','Rice & Dal'],['🍪','Snacks'],['🥤','Beverages'],['🧼','Home Care']];
 
 export default function Home(){
-  const [products,setProducts]=useState([]);
-  useEffect(()=>{api('/products?featured=true').then(setProducts).catch(()=>{})},[]);
-  return <main>
-    <section className="hero-wrap">
-      <div className="hero">
-        <div className="hero-copy">
-          <div className="delivery-chip"><span>⚡</span> Delivery in 15–30 minutes</div>
-          <h1>Groceries that come<br/><em>before you miss them.</em></h1>
-          <p>Fresh produce, pantry staples and everyday essentials delivered from your trusted neighbourhood grocery store.</p>
-          <div className="hero-actions">
-            <Link className="primary" to="/products">Shop groceries <span>→</span></Link>
-            <Link className="secondary" to="/products">Explore offers</Link>
-          </div>
-          <div className="hero-proof">
-            <div><b>4.8★</b><span>Customer rating</span></div>
-            <div><b>1000+</b><span>Happy orders</span></div>
-            <div><b>7 Days</b><span>Open every week</span></div>
-          </div>
-        </div>
-        <div className="hero-visual">
-          <div className="hero-orb orb-one"></div><div className="hero-orb orb-two"></div>
-          <div className="grocery-bag"><span className="bag-mark">SBN</span><div className="bag-items">🥬 🍅 🥖<br/>🥛 🍊 🥚</div><b>Fresh. Fast. Local.</b></div>
-          <div className="floating-card fc-one"><span>🥬</span><div><small>Fresh today</small><b>Green Veggies</b></div></div>
-          <div className="floating-card fc-two"><span>🛵</span><div><small>Fast delivery</small><b>At your door</b></div></div>
-        </div>
-      </div>
+  const [products,setProducts]=useState([]);useEffect(()=>{api('/products?featured=true').then(setProducts).catch(()=>{})},[]);
+  return <main className="market-home">
+    <section className="market-hero">
+      <div className="hero-main-card"><div className="hero-copy-new"><span className="hero-kicker">EVERYDAY VALUE • LOCAL SPEED</span><h1>Everything your home needs, <em>one smart basket away.</em></h1><p>Shop fresh groceries, pantry essentials, snacks and home care with quick local fulfilment.</p><div className="hero-buttons"><Link className="shop-now" to="/products">Shop now →</Link><Link className="outline-btn" to="/paylater">Explore PayLater</Link></div><div className="trust-row"><span>✓ Fresh picks</span><span>✓ Secure account</span><span>✓ Easy support</span></div></div><div className="hero-art"><div className="basket-visual"><span>🥦</span><span>🍊</span><span>🥖</span><span>🥛</span><span>🍅</span></div><div className="price-pop"><small>FREE DELIVERY</small><b>Orders ₹499+</b></div></div></div>
+      <div className="hero-side"><Link to="/paylater" className="side-card credit-side"><span>₹</span><div><small>SBN PAYLATER</small><h3>Buy essentials on approved store credit</h3><p>Manual approval • Clear limit • Track dues</p></div></Link><Link to="/products" className="side-card deal-side"><span>⚡</span><div><small>QUICK SHOP</small><h3>Daily essentials ready to add</h3><p>Groceries for your weekly basket</p></div></Link></div>
     </section>
 
-    <section className="quick-benefits">
-      <div><span>⚡</span><div><b>Quick Delivery</b><small>Fast doorstep service</small></div></div>
-      <div><span>🥬</span><div><b>Fresh Quality</b><small>Handpicked everyday</small></div></div>
-      <div><span>₹</span><div><b>Best Prices</b><small>Value on every basket</small></div></div>
-      <div><span>🛡️</span><div><b>Secure Shopping</b><small>Safe checkout experience</small></div></div>
-    </section>
+    <section className="category-rail"><div className="rail-title"><h2>Shop by category</h2><Link to="/products">View all →</Link></div><div className="rail-items">{categories.map(([icon,name])=><Link to={`/products?search=${encodeURIComponent(name)}`} key={name}><span>{icon}</span><b>{name}</b></Link>)}</div></section>
 
-    <section className="section category-section">
-      <div className="section-head"><div><span className="eyebrow">Shop your way</span><h2>Popular categories</h2></div><Link to="/products">See all products →</Link></div>
-      <div className="category-grid">{categories.map(([icon,title,sub])=><Link to="/products" className="category-card" key={title}><div className="category-icon">{icon}</div><b>{title}</b><small>{sub}</small><span>Shop now →</span></Link>)}</div>
-    </section>
+    <section className="deal-band"><div><span className="deal-icon">🏷️</span><div><small>SBN VALUE DAYS</small><h2>Smart prices on everyday staples</h2></div></div><Link to="/products">Browse all deals →</Link></section>
 
-    <section className="promo-row">
-      <div className="promo-card promo-green"><small>WEEKEND SAVINGS</small><h3>Save more on your monthly essentials.</h3><Link to="/products">Shop deals →</Link></div>
-      <div className="promo-card promo-yellow"><small>FRESH PICKS</small><h3>Fruits & vegetables selected every morning.</h3><Link to="/products">Explore fresh →</Link></div>
-    </section>
+    <section className="market-section"><div className="market-section-head"><div><small>TOP PICKS</small><h2>Popular products</h2><p>Customer favourites and everyday essentials.</p></div><Link to="/products">See everything →</Link></div><div className="product-grid">{products.slice(0,8).map(p=><ProductCard key={p._id} product={p}/>)}</div></section>
 
-    <section className="section featured-section">
-      <div className="section-head"><div><span className="eyebrow">Picked for you</span><h2>Popular right now</h2><p>Everyday favourites at prices worth adding to cart.</p></div><Link to="/products">View all →</Link></div>
-      <div className="product-grid">{products.slice(0,8).map(p=><ProductCard key={p._id} product={p}/>)}</div>
-    </section>
+    <section className="service-cards"><div><span>🚚</span><b>Fast local fulfilment</b><p>Simple doorstep delivery for everyday orders.</p></div><div><span>💳</span><b>SBN PayLater</b><p>Store credit after manual approval from management.</p></div><div><span>📦</span><b>Bulk & business orders</b><p>Support for recurring and larger grocery requirements.</p></div><div><span>🤝</span><b>Dealers & suppliers</b><p>Business enquiry channel for brands and distributors.</p></div></section>
+
+    <section className="paylater-banner"><div><span>PAYLATER</span><h2>Running short before the next payment day?</h2><p>Approved customers can use an assigned SBN Kirana store-credit limit at checkout and track outstanding dues from their account.</p><Link to="/paylater">Open PayLater →</Link></div><div className="big-rupee">₹</div></section>
   </main>
 }

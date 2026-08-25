@@ -1,25 +1,4 @@
 import {NavLink} from 'react-router-dom';
 import {useAdminAuth} from '../context/AdminAuthContext';
-
-export default function Layout({children}){
-  const {admin,logout}=useAdminAuth();
-  return <div className="admin-shell">
-    <aside>
-      <div className="admin-brand"><span>SBN</span><div><b>KIRANA ADMIN</b><small>Operations Console</small></div></div>
-      <div className="nav-label">WORKSPACE</div>
-      <nav>
-        <NavLink to="/"><span>◫</span>Dashboard</NavLink>
-        <NavLink to="/products"><span>▣</span>Products</NavLink>
-        <NavLink to="/orders"><span>▤</span>Orders</NavLink>
-        <NavLink to="/customers"><span>♙</span>Customers</NavLink>
-        <NavLink to="/messages"><span>✉</span>Messages</NavLink>
-      </nav>
-      <div className="store-status"><span className="status-dot"></span><div><b>Store online</b><small>All systems operational</small></div></div>
-      <div className="admin-user"><div className="avatar">{admin?.name?.[0]||'A'}</div><div><b>{admin?.name}</b><span>{admin?.email}</span></div><button onClick={logout}>↗</button></div>
-    </aside>
-    <main>
-      <header><div><small>SBN CONTROL CENTER</small><h2>Store Management</h2></div><div className="header-actions"><span className="live">● Live</span><div className="today">{new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</div></div></header>
-      <div className="admin-content">{children}</div>
-    </main>
-  </div>
-}
+const Item=({to,icon,children})=><NavLink to={to}><span>{icon}</span>{children}</NavLink>;
+export default function Layout({children}){const {admin,logout}=useAdminAuth();return <div className="admin-shell"><aside><div className="admin-brand"><span>SBN</span><div><b>KIRANA CONTROL</b><small>Business OS</small></div></div><div className="sidebar-scroll"><div className="nav-label">OVERVIEW</div><nav><Item to="/" icon="◫">Dashboard</Item></nav><div className="nav-label">COMMERCE</div><nav><Item to="/products" icon="▣">Products</Item><Item to="/stock" icon="▥">Stock Management</Item><Item to="/orders" icon="▤">Orders</Item><Item to="/customers" icon="♙">Customers</Item></nav><div className="nav-label">FINANCE</div><nav><Item to="/paylater" icon="₹">PayLater</Item><Item to="/cash" icon="◉">Cash Management</Item><Item to="/reports" icon="↗">Sales & Profit</Item></nav><div className="nav-label">PEOPLE</div><nav><Item to="/team" icon="♟">Workers</Item><Item to="/admins" icon="⚙">Admin Management</Item><Item to="/messages" icon="✉">Messages</Item></nav></div><div className="store-status"><span className="status-dot"></span><div><b>Store systems online</b><small>Management console active</small></div></div><div className="admin-user"><div className="avatar">{admin?.name?.[0]||'A'}</div><div><b>{admin?.name}</b><span>{admin?.email}</span></div><button onClick={logout}>↗</button></div></aside><main><header><div><small>SBN BUSINESS CONTROL CENTER</small><h2>Operations & Finance</h2></div><div className="header-actions"><span className="live">● Live</span><div className="today">{new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</div></div></header><div className="admin-content">{children}</div></main></div>}
