@@ -1,1 +1,23 @@
-import mongoose from 'mongoose';const schema=new mongoose.Schema({name:{type:String,required:true,trim:true},category:{type:String,required:true,index:true},price:{type:Number,required:true,min:0},mrp:{type:Number,required:true,min:0},unit:{type:String,required:true},stock:{type:Number,required:true,min:0,default:0},image:{type:String,required:true},description:{type:String,default:''},featured:{type:Boolean,default:false},discount:{type:Number,default:0}},{timestamps:true});schema.pre('save',function(next){this.discount=this.mrp>this.price?Math.round((1-this.price/this.mrp)*100):0;next()});export default mongoose.model('Product',schema);
+import mongoose from 'mongoose';
+
+const schema=new mongoose.Schema({
+  name:{type:String,required:true,trim:true},
+  category:{type:String,required:true,index:true},
+  price:{type:Number,required:true,min:0},
+  mrp:{type:Number,required:true,min:0},
+  costPrice:{type:Number,default:0,min:0},
+  unit:{type:String,required:true},
+  stock:{type:Number,required:true,min:0,default:0},
+  lowStockThreshold:{type:Number,default:10,min:0},
+  image:{type:String,required:true},
+  description:{type:String,default:''},
+  featured:{type:Boolean,default:false},
+  discount:{type:Number,default:0}
+},{timestamps:true});
+
+schema.pre('save',function(next){
+  this.discount=this.mrp>this.price?Math.round((1-this.price/this.mrp)*100):0;
+  next();
+});
+
+export default mongoose.model('Product',schema);

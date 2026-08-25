@@ -1,1 +1,153 @@
-import Product from '../models/Product.js';import Order from '../models/Order.js';import User from '../models/User.js';import Message from '../models/Message.js';export async function dashboard(req,res,next){try{const [products,orders,customers,recentOrders]=await Promise.all([Product.countDocuments(),Order.countDocuments(),User.countDocuments({role:'customer'}),Order.find().populate('user','name email').sort({createdAt:-1}).limit(6)]);const rev=await Order.aggregate([{$match:{status:{$ne:'Cancelled'}}},{$group:{_id:null,total:{$sum:'$total'}}}]);res.json({products,orders,customers,revenue:rev[0]?.total||0,recentOrders})}catch(e){next(e)}}export async function products(req,res,next){try{res.json(await Product.find().sort({createdAt:-1}))}catch(e){next(e)}}export async function createProduct(req,res,next){try{res.status(201).json(await Product.create(req.body))}catch(e){next(e)}}export async function updateProduct(req,res,next){try{const p=await Product.findById(req.params.id);if(!p)return res.status(404).json({message:'Product not found'});Object.assign(p,req.body);await p.save();res.json(p)}catch(e){next(e)}}export async function deleteProduct(req,res,next){try{const p=await Product.findByIdAndDelete(req.params.id);if(!p)return res.status(404).json({message:'Product not found'});res.json({message:'Product deleted'})}catch(e){next(e)}}export async function orders(req,res,next){try{res.json(await Order.find().populate('user','name email phone').sort({createdAt:-1}))}catch(e){next(e)}}export async function updateOrderStatus(req,res,next){try{const o=await Order.findByIdAndUpdate(req.params.id,{status:req.body.status},{new:true});if(!o)return res.status(404).json({message:'Order not found'});res.json(o)}catch(e){next(e)}}export async function customers(req,res,next){try{res.json(await User.find({role:'customer'}).sort({createdAt:-1}))}catch(e){next(e)}}export async function messages(req,res,next){try{res.json(await Message.find().sort({createdAt:-1}))}catch(e){next(e)}}
+import Product from '../models/Product.js';
+import Order from '../models/Order.js';
+import User from '../models/User.js';
+import Message from '../models/Message.js';
+import Worker from '../models/Worker.js';
+import CashEntry from '../models/CashEntry.js';
+
+const money=n=>Math.round((Number(n)||0)*100)/100;
+const profitFromOrders=orders=>money(orders.reduce((sum,o)=>sum+o.items.reduce((s,i)=>s+((i.price||0)-(i.costPrice||0))*(i.quantity||0),0),0));
+
+export async function dashboard(req,res,next){
+  try{
+    const [productDocs,orderDocs,customers,recentOrders,workers,cash]=await Promise.all([
+      Product.find(),Order.find().populate('user','name email').sort({createdAt:-1}),User.countDocuments({role:'customer'}),Order.find().populate('user','name email').sort({createdAt:-1}).limit(7),Worker.countDocuments({status:'Active'}),CashEntry.find()
+    ]);
+    const valid=orderDocs.filter(o=>o.status!=='Cancelled');
+    const revenue=money(valid.reduce((s,o)=>s+(o.total||0),0));
+    const grossProfit=profitFromOrders(valid);
+    const payLaterDue=money(await User.aggregate([{$match:{role:'customer'}},{$group:{_id:null,total:{$sum:'$payLater.used'}}}]).then(r=>r[0]?.total||0));
+    const lowStock=productDocs.filter(p=>p.stock<=p.lowStockThreshold).length;
+    const today=new Date();today.setHours(0,0,0,0);
+    const salesToday=money(valid.filter(o=>new Date(o.createdAt)>=today).reduce((s,o)=>s+(o.total||0),0));
+    const cashBalance=money(cash.reduce((s,e)=>s+(e.type==='income'?e.amount:-e.amount),0));
+    res.json({products:productDocs.length,orders:orderDocs.length,customers,revenue,grossProfit,payLaterDue,lowStock,workers,salesToday,cashBalance,recentOrders});
+  }catch(e){next(e)}
+}
+
+export async function products(req,res,next){try{res.json(await Product.find().sort({createdAt:-1}))}catch(e){next(e)}}
+export async function createProduct(req,res,next){try{res.status(201).json(await Product.create(req.body))}catch(e){next(e)}}
+export async function updateProduct(req,res,next){try{const p=await Product.findById(req.params.id);if(!p)return res.status(404).json({message:'Product not found'});Object.assign(p,req.body);await p.save();res.json(p)}catch(e){next(e)}}
+export async function deleteProduct(req,res,next){try{const p=await Product.findByIdAndDelete(req.params.id);if(!p)return res.status(404).json({message:'Product not found'});res.json({message:'Product deleted'})}catch(e){next(e)}}
+
+export async function orders(req,res,next){try{res.json(await Order.find().populate('user','name email phone payLater').sort({createdAt:-1}))}catch(e){next(e)}}
+export async function updateOrderStatus(req,res,next){
+  try{
+    const o=await Order.findById(req.params.id);
+    if(!o)return res.status(404).json({message:'Order not found'});
+    const previous=o.status;
+    const nextStatus=req.body.status;
+    if(previous==='Cancelled'&&nextStatus!=='Cancelled')return res.status(400).json({message:'Cancelled orders cannot be reopened'});
+    if(nextStatus==='Cancelled'&&previous!=='Cancelled'){
+      await Product.bulkWrite(o.items.filter(i=>i.product).map(i=>({updateOne:{filter:{_id:i.product},update:{$inc:{stock:i.quantity}}}})));
+      if(o.paymentMethod==='PAYLATER'){
+        const user=await User.findById(o.user);
+        if(user){user.payLater.used=Math.max((user.payLater.used||0)-o.total,0);if(user.payLater.used===0)user.payLater.dueDate=null;await user.save()}
+      }
+      if(o.paymentStatus==='Paid')o.paymentStatus='Refunded';
+    }
+    o.status=nextStatus;
+    if(nextStatus==='Delivered'&&['COD','UPI'].includes(o.paymentMethod))o.paymentStatus='Paid';
+    await o.save();
+    res.json(o);
+  }catch(e){next(e)}
+}
+
+export async function customers(req,res,next){try{res.json(await User.find({role:'customer'}).sort({createdAt:-1}))}catch(e){next(e)}}
+export async function messages(req,res,next){try{res.json(await Message.find().sort({createdAt:-1}))}catch(e){next(e)}}
+
+export async function payLaterCustomers(req,res,next){
+  try{res.json(await User.find({role:'customer','payLater.status':{$ne:'not_requested'}}).sort({'payLater.updatedAt':-1,createdAt:-1}))}catch(e){next(e)}
+}
+
+export async function updatePayLater(req,res,next){
+  try{
+    const user=await User.findOne({_id:req.params.id,role:'customer'});
+    if(!user)return res.status(404).json({message:'Customer not found'});
+    const status=req.body.status||user.payLater.status;
+    const limit=req.body.limit===undefined?(user.payLater.limit||0):Math.max(Number(req.body.limit)||0,0);
+    if(limit<(user.payLater.used||0))return res.status(400).json({message:'Limit cannot be lower than current outstanding amount'});
+    user.payLater.status=status;
+    user.payLater.limit=limit;
+    user.payLater.note=req.body.note??user.payLater.note;
+    user.payLater.updatedAt=new Date();
+    await user.save();
+    res.json(user);
+  }catch(e){next(e)}
+}
+
+export async function recordPayLaterPayment(req,res,next){
+  try{
+    const user=await User.findOne({_id:req.params.id,role:'customer'});
+    if(!user)return res.status(404).json({message:'Customer not found'});
+    const amount=Math.max(Number(req.body.amount)||0,0);
+    if(amount<=0)return res.status(400).json({message:'Enter a valid payment amount'});
+    if(amount>(user.payLater.used||0))return res.status(400).json({message:'Payment exceeds outstanding amount'});
+    user.payLater.used=money((user.payLater.used||0)-amount);
+    if(user.payLater.used===0)user.payLater.dueDate=null;
+    user.payLater.updatedAt=new Date();
+    await user.save();
+    await CashEntry.create({type:'income',amount,category:'PayLater Recovery',note:`Payment from ${user.name}`,createdBy:req.user._id});
+    res.json({message:'Payment recorded',payLater:user.payLater});
+  }catch(e){next(e)}
+}
+
+export async function stock(req,res,next){try{res.json(await Product.find().sort({stock:1,name:1}))}catch(e){next(e)}}
+export async function updateStock(req,res,next){
+  try{
+    const p=await Product.findById(req.params.id);if(!p)return res.status(404).json({message:'Product not found'});
+    if(req.body.stock!==undefined)p.stock=Math.max(Number(req.body.stock)||0,0);
+    if(req.body.lowStockThreshold!==undefined)p.lowStockThreshold=Math.max(Number(req.body.lowStockThreshold)||0,0);
+    await p.save();res.json(p);
+  }catch(e){next(e)}
+}
+
+export async function reports(req,res,next){
+  try{
+    const orderDocs=await Order.find({status:{$ne:'Cancelled'}}).sort({createdAt:1});
+    const revenue=money(orderDocs.reduce((s,o)=>s+(o.total||0),0));
+    const grossProfit=profitFromOrders(orderDocs);
+    const salesByDay={};
+    for(const o of orderDocs){const key=new Date(o.createdAt).toISOString().slice(0,10);salesByDay[key]=(salesByDay[key]||0)+(o.total||0)}
+    const productDocs=await Product.find();
+    const stockCost=money(productDocs.reduce((s,p)=>s+(p.costPrice||0)*(p.stock||0),0));
+    const stockRetail=money(productDocs.reduce((s,p)=>s+(p.price||0)*(p.stock||0),0));
+    res.json({revenue,grossProfit,orders:orderDocs.length,averageOrder:orderDocs.length?money(revenue/orderDocs.length):0,stockCost,stockRetail,salesByDay:Object.entries(salesByDay).slice(-30).map(([date,total])=>({date,total:money(total)}))});
+  }catch(e){next(e)}
+}
+
+export async function workers(req,res,next){try{res.json(await Worker.find().sort({createdAt:-1}))}catch(e){next(e)}}
+export async function createWorker(req,res,next){try{res.status(201).json(await Worker.create(req.body))}catch(e){next(e)}}
+export async function updateWorker(req,res,next){try{const w=await Worker.findByIdAndUpdate(req.params.id,req.body,{new:true,runValidators:true});if(!w)return res.status(404).json({message:'Worker not found'});res.json(w)}catch(e){next(e)}}
+export async function deleteWorker(req,res,next){try{const w=await Worker.findByIdAndDelete(req.params.id);if(!w)return res.status(404).json({message:'Worker not found'});res.json({message:'Worker deleted'})}catch(e){next(e)}}
+
+export async function cashEntries(req,res,next){
+  try{
+    const entries=await CashEntry.find().populate('createdBy','name').sort({entryDate:-1,createdAt:-1});
+    const income=money(entries.filter(e=>e.type==='income').reduce((s,e)=>s+e.amount,0));
+    const expense=money(entries.filter(e=>e.type==='expense').reduce((s,e)=>s+e.amount,0));
+    res.json({entries,income,expense,balance:money(income-expense)});
+  }catch(e){next(e)}
+}
+export async function createCashEntry(req,res,next){try{res.status(201).json(await CashEntry.create({...req.body,createdBy:req.user._id}))}catch(e){next(e)}}
+export async function deleteCashEntry(req,res,next){try{const x=await CashEntry.findByIdAndDelete(req.params.id);if(!x)return res.status(404).json({message:'Entry not found'});res.json({message:'Entry deleted'})}catch(e){next(e)}}
+
+export async function admins(req,res,next){try{res.json(await User.find({role:'admin'}).sort({createdAt:-1}))}catch(e){next(e)}}
+export async function createAdmin(req,res,next){
+  try{
+    const {name,email,phone,password}=req.body;
+    if(!name||!email||!password)return res.status(400).json({message:'Name, email and password are required'});
+    if(password.length<6)return res.status(400).json({message:'Password must be at least 6 characters'});
+    const exists=await User.findOne({email:email.toLowerCase()});if(exists)return res.status(409).json({message:'Email already exists'});
+    res.status(201).json(await User.create({name,email,phone,password,role:'admin'}));
+  }catch(e){next(e)}
+}
+export async function updateAdmin(req,res,next){
+  try{
+    const a=await User.findOne({_id:req.params.id,role:'admin'});if(!a)return res.status(404).json({message:'Admin not found'});
+    if(req.body.name!==undefined)a.name=req.body.name;
+    if(req.body.phone!==undefined)a.phone=req.body.phone;
+    if(req.body.isActive!==undefined)a.isActive=Boolean(req.body.isActive);
+    await a.save();res.json(a);
+  }catch(e){next(e)}
+}
