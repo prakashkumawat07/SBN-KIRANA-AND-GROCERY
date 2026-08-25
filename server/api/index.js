@@ -2,6 +2,7 @@ import app from '../src/app.js';
 import {connectDB} from '../src/config/db.js';
 import {bootstrapDatabase} from '../src/utils/bootstrap.js';
 
+// Production serverless API entrypoint.
 const allowedOrigins=[
   'https://sbn-kirana-store.vercel.app',
   'https://sbn-kirana-admin.vercel.app',
