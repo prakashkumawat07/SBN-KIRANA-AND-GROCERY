@@ -1,5 +1,5 @@
 const API_URL=import.meta.env.PROD
-  ? 'https://sbn-kirana-api.vercel.app/api'
+  ? 'https://sbn-kirana-api-prakashkumawat12245-2350s-projects.vercel.app/api'
   : (import.meta.env.VITE_API_URL||'http://localhost:5000/api');
 
 export async function api(path,options={}){
