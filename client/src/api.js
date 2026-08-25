@@ -13,6 +13,8 @@ export async function api(path,options={}){
     ...options,
     headers
   });
+  const contentType=res.headers.get('content-type')||'';
+  if(!contentType.includes('application/json'))throw new TypeError('Live API unavailable');
   const data=await res.json().catch(()=>({}));
   if(!res.ok)throw new Error(data.message||'Something went wrong');
   return data;
