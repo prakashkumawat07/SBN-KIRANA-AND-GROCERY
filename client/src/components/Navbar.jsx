@@ -9,7 +9,12 @@ export default function Navbar(){
     <div className="topbar"><span>⚡ Fresh groceries, fast delivery</span><span>Free delivery above ₹499</span><span>Support: 7 days a week</span></div>
     <header className="site-header">
       <Link className="brand brand-logo-link" to="/" aria-label="SBN Kirana home">
-        <img className="brand-logo" src="/sbn-kirana-logo.svg" alt="SBN KIRANA" />
+        <img
+          className="brand-logo"
+          src="/sbn-kirana-logo.svg"
+          alt="SBN KIRANA"
+          style={{width:'clamp(150px,18vw,220px)',height:'64px',objectFit:'contain',objectPosition:'left center',display:'block'}}
+        />
       </Link>
       <nav><NavLink to="/">Home</NavLink><NavLink to="/products">Shop</NavLink><NavLink to="/contact">Contact</NavLink>{user&&<NavLink to="/orders">Orders</NavLink>}</nav>
       <div className="actions">
