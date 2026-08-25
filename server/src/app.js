@@ -16,7 +16,19 @@ const allowed=[
   process.env.CLIENT_URL,process.env.ADMIN_URL
 ].filter(Boolean);
 
-app.use(cors({origin:(origin,cb)=>!origin||allowed.includes(origin)?cb(null,true):cb(new Error('Origin not allowed'))}));
+function isAllowedOrigin(origin){
+  if(!origin)return true;
+  if(allowed.includes(origin))return true;
+  return /^https:\/\/sbn-kirana-(store|admin)-.+\.vercel\.app$/.test(origin);
+}
+
+app.use(cors({
+  origin:(origin,cb)=>isAllowedOrigin(origin)?cb(null,true):cb(new Error('Origin not allowed')),
+  methods:['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders:['Content-Type','Authorization'],
+  optionsSuccessStatus:204
+}));
+app.options(/.*/,cors());
 app.use(express.json({limit:'1mb'}));
 app.use(morgan('dev'));
 app.get('/api/health',(req,res)=>res.json({status:'ok',service:'SBN Kirana API',features:['paylater','inventory','reports','workers','cash']}));
