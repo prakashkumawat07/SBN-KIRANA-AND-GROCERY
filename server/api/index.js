@@ -9,7 +9,7 @@ const allowedOrigins=[
   'http://localhost:5173',
   'http://localhost:5174'
 ];
-const allowedGatewayRoots=['/auth','/products','/orders','/contact','/paylater','/admin'];
+const allowedGatewayRoots=['/auth','/products','/orders','/contact','/paylater','/offers','/admin'];
 
 function applyCors(req,res){
   const origin=req.headers.origin;
