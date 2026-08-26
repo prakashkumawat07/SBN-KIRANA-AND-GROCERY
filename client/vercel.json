@@ -4,8 +4,8 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "https://sbn-kirana-api-prakashkumawat12245-2350s-projects.vercel.app/api/:path*"
+      "source": "/service/:path*",
+      "destination": "https://sbn-kirana-api-prakashkumawat12245-2350s-projects.vercel.app/service/:path*"
     },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
