@@ -1,10 +1,12 @@
 import Order from '../models/Order.js';
 import Product from '../models/Product.js';
 import User from '../models/User.js';
+import Offer from '../models/Offer.js';
+import {discountFor} from './marketingController.js';
 
 export async function createOrder(req,res,next){
   try{
-    const {items,shippingAddress,paymentMethod}=req.body;
+    const {items,shippingAddress,paymentMethod,couponCode}=req.body;
     if(!items?.length)return res.status(400).json({message:'Cart is empty'});
 
     const orderItems=[];
@@ -20,8 +22,11 @@ export async function createOrder(req,res,next){
       stockUpdates.push({updateOne:{filter:{_id:p._id,stock:{$gte:q}},update:{$inc:{stock:-q}}}});
     }
 
-    const deliveryFee=subtotal>=499?0:49;
-    const total=subtotal+deliveryFee;
+    let discount=0;let appliedCode='';let offer=null;
+    if(couponCode){offer=await Offer.findOne({code:String(couponCode).trim().toUpperCase()});if(!offer)return res.status(400).json({message:'Coupon is invalid'});discount=discountFor(offer,subtotal);if(discount<=0)return res.status(400).json({message:'Coupon is not applicable to this order'});appliedCode=offer.code}
+    const discountedSubtotal=Math.max(subtotal-discount,0);
+    const deliveryFee=discountedSubtotal>=499?0:49;
+    const total=discountedSubtotal+deliveryFee;
     let paymentStatus='Pending';
     let payLaterDueDate=null;
     let creditUser=null;
@@ -37,7 +42,8 @@ export async function createOrder(req,res,next){
     }
 
     await Product.bulkWrite(stockUpdates);
-    const order=await Order.create({user:req.user._id,items:orderItems,shippingAddress,paymentMethod,subtotal,deliveryFee,total,paymentStatus,payLaterDueDate});
+    const order=await Order.create({user:req.user._id,items:orderItems,shippingAddress,paymentMethod,subtotal,deliveryFee,discount,couponCode:appliedCode,total,paymentStatus,payLaterDueDate});
+    if(offer){offer.usedCount=(offer.usedCount||0)+1;await offer.save()}
 
     if(paymentMethod==='PAYLATER'&&creditUser){
       creditUser.payLater.used=(creditUser.payLater.used||0)+total;
