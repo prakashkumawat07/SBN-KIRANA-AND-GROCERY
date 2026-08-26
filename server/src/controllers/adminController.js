@@ -4,6 +4,7 @@ import User from '../models/User.js';
 import Message from '../models/Message.js';
 import Worker from '../models/Worker.js';
 import CashEntry from '../models/CashEntry.js';
+import RecoveryAction from '../models/RecoveryAction.js';
 
 const money=n=>Math.round((Number(n)||0)*100)/100;
 const profitFromOrders=orders=>money(orders.reduce((sum,o)=>sum+o.items.reduce((s,i)=>s+((i.price||0)-(i.costPrice||0))*(i.quantity||0),0),0));
@@ -57,21 +58,40 @@ export async function customers(req,res,next){try{res.json(await User.find({role
 export async function messages(req,res,next){try{res.json(await Message.find().sort({createdAt:-1}))}catch(e){next(e)}}
 
 export async function payLaterCustomers(req,res,next){
-  try{res.json(await User.find({role:'customer','payLater.status':{$ne:'not_requested'}}).sort({'payLater.updatedAt':-1,createdAt:-1}))}catch(e){next(e)}
+  try{
+    const users=await User.find({role:'customer','payLater.status':{$ne:'not_requested'}}).sort({'payLater.updatedAt':-1,createdAt:-1}).lean();
+    const ids=users.map(u=>u._id);
+    const [orderDocs,actionDocs]=await Promise.all([
+      Order.find({user:{$in:ids}}).select('user shippingAddress createdAt').sort({createdAt:-1}).lean(),
+      RecoveryAction.find({customer:{$in:ids}}).populate('admin','name email').sort({createdAt:-1}).lean()
+    ]);
+    const addressByUser=new Map();
+    for(const o of orderDocs){const key=String(o.user);if(!addressByUser.has(key)&&o.shippingAddress)addressByUser.set(key,o.shippingAddress)}
+    const actionsByUser=new Map();
+    for(const a of actionDocs){const key=String(a.customer);const list=actionsByUser.get(key)||[];if(list.length<12)list.push(a);actionsByUser.set(key,list)}
+    res.json(users.map(u=>({...u,latestAddress:addressByUser.get(String(u._id))||null,recoveryHistory:actionsByUser.get(String(u._id))||[]})));
+  }catch(e){next(e)}
 }
 
 export async function updatePayLater(req,res,next){
   try{
     const user=await User.findOne({_id:req.params.id,role:'customer'});
     if(!user)return res.status(404).json({message:'Customer not found'});
+    const previousStatus=user.payLater.status;
+    const previousLimit=user.payLater.limit||0;
     const status=req.body.status||user.payLater.status;
-    const limit=req.body.limit===undefined?(user.payLater.limit||0):Math.max(Number(req.body.limit)||0,0);
+    const limit=req.body.limit===undefined?previousLimit:Math.max(Number(req.body.limit)||0,0);
     if(limit<(user.payLater.used||0))return res.status(400).json({message:'Limit cannot be lower than current outstanding amount'});
     user.payLater.status=status;
     user.payLater.limit=limit;
     user.payLater.note=req.body.note??user.payLater.note;
     user.payLater.updatedAt=new Date();
+    if(status==='approved'&&['suspended','banned','blocked'].includes(previousStatus))user.payLater.recoveryStatus='current';
     await user.save();
+    const logs=[];
+    if(previousLimit!==limit)logs.push(RecoveryAction.create({customer:user._id,admin:req.user._id,type:'limit_change',previousLimit,newLimit:limit,note:req.body.note||`Limit changed from ₹${previousLimit} to ₹${limit}`}));
+    if(previousStatus!==status)logs.push(RecoveryAction.create({customer:user._id,admin:req.user._id,type:'status_change',note:req.body.note||`PayLater status changed from ${previousStatus} to ${status}`}));
+    await Promise.all(logs);
     res.json(user);
   }catch(e){next(e)}
 }
@@ -84,11 +104,42 @@ export async function recordPayLaterPayment(req,res,next){
     if(amount<=0)return res.status(400).json({message:'Enter a valid payment amount'});
     if(amount>(user.payLater.used||0))return res.status(400).json({message:'Payment exceeds outstanding amount'});
     user.payLater.used=money((user.payLater.used||0)-amount);
-    if(user.payLater.used===0)user.payLater.dueDate=null;
+    if(user.payLater.used===0){user.payLater.dueDate=null;user.payLater.recoveryStatus='closed'}
+    else user.payLater.recoveryStatus='current';
+    user.payLater.lastRecoveryAt=new Date();
     user.payLater.updatedAt=new Date();
     await user.save();
-    await CashEntry.create({type:'income',amount,category:'PayLater Recovery',note:`Payment from ${user.name}`,createdBy:req.user._id});
+    await Promise.all([
+      CashEntry.create({type:'income',amount,category:'PayLater Recovery',note:`Payment from ${user.name}`,createdBy:req.user._id}),
+      RecoveryAction.create({customer:user._id,admin:req.user._id,type:'payment_received',amount,note:req.body.note||`Payment received. Remaining outstanding ₹${user.payLater.used}`,outcome:'completed'})
+    ]);
     res.json({message:'Payment recorded',payLater:user.payLater});
+  }catch(e){next(e)}
+}
+
+export async function recordRecoveryAction(req,res,next){
+  try{
+    const user=await User.findOne({_id:req.params.id,role:'customer'});
+    if(!user)return res.status(404).json({message:'Customer not found'});
+    const allowed=['call','message','email','home_visit','legal_review','promise_to_pay','dispute','note'];
+    const type=req.body.type;
+    if(!allowed.includes(type))return res.status(400).json({message:'Invalid recovery action'});
+    const scheduledFor=req.body.scheduledFor?new Date(req.body.scheduledFor):null;
+    if(type==='home_visit'&&!scheduledFor)return res.status(400).json({message:'Schedule a date/time for the home visit'});
+    const now=new Date();
+    user.payLater.lastRecoveryAt=now;
+    if(type==='home_visit'){user.payLater.recoveryStatus='home_visit_scheduled';user.payLater.nextFollowUpAt=scheduledFor}
+    else if(type==='legal_review'){user.payLater.recoveryStatus='legal_review'}
+    else if(type==='promise_to_pay'){user.payLater.recoveryStatus='promise_to_pay';user.payLater.nextFollowUpAt=scheduledFor||user.payLater.nextFollowUpAt}
+    else if(type==='dispute'){user.payLater.recoveryStatus='disputed'}
+    else user.payLater.recoveryStatus='contact_in_progress';
+    await user.save();
+    const action=await RecoveryAction.create({
+      customer:user._id,admin:req.user._id,type,
+      note:req.body.note||'',scheduledFor:scheduledFor||undefined,
+      outcome:req.body.outcome||'logged'
+    });
+    res.status(201).json({message:type==='legal_review'?'Legal review request logged. No legal action is automatic.':'Recovery activity logged',action,payLater:user.payLater});
   }catch(e){next(e)}
 }
 
