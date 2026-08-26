@@ -8,7 +8,10 @@ export async function getMyPayLater(req,res,next){
       used:p.used||0,
       available:Math.max((p.limit||0)-(p.used||0),0),
       dueDate:p.dueDate||null,
-      note:p.note||''
+      note:p.note||'',
+      recoveryStatus:p.recoveryStatus||'current',
+      nextFollowUpAt:p.nextFollowUpAt||null,
+      lastRecoveryAt:p.lastRecoveryAt||null
     });
   }catch(e){next(e)}
 }
@@ -18,6 +21,7 @@ export async function requestPayLater(req,res,next){
     const requestedLimit=Math.max(Number(req.body.requestedLimit)||0,0);
     if(requestedLimit<=0)return res.status(400).json({message:'Enter a valid requested limit'});
     if(req.user.payLater?.status==='approved')return res.status(400).json({message:'PayLater is already active on your account'});
+    if(['suspended','banned','blocked'].includes(req.user.payLater?.status))return res.status(400).json({message:'PayLater access is currently restricted. Contact store support for review.'});
     req.user.payLater={
       ...(req.user.payLater?.toObject?.()||req.user.payLater||{}),
       status:'pending',requestedLimit,updatedAt:new Date()
