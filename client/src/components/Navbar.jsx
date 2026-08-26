@@ -29,6 +29,7 @@ export default function Navbar(){
             <div className="account-dropdown-head"><span>{user.name?.charAt(0)?.toUpperCase()||'U'}</span><div><b>{user.name}</b><small>{user.email}</small></div></div>
             <Link to="/account" onClick={closeAccount}><span>👤</span><div><b>My Account</b><small>Profile & account overview</small></div></Link>
             <Link to="/account#orders" onClick={closeAccount}><span>📦</span><div><b>Order Details</b><small>Track recent purchases</small></div></Link>
+            <Link to="/wishlist" onClick={closeAccount}><span>♥</span><div><b>My Wishlist</b><small>Saved products</small></div></Link>
             <Link to="/account#paylater" onClick={closeAccount}><span>₹</span><div><b>PayLater</b><small>Outstanding & payment</small></div></Link>
             <Link to="/contact" onClick={closeAccount}><span>☎</span><div><b>Contact Us</b><small>Customer support</small></div></Link>
             <Link to="/info/about" onClick={closeAccount}><span>🏪</span><div><b>About Us</b><small>Know SBN Kirana</small></div></Link>
@@ -49,6 +50,7 @@ export default function Navbar(){
       <NavLink to="/products?category=Household">Home Care</NavLink>
       <Link className="nav-deal" to="/paylater">PayLater</Link>
       <Link to="/contact">Customer Service</Link>
+      <Link to="/wishlist">Wishlist</Link>
       {user&&<Link to="/account">My Account</Link>}
       {user&&<Link to="/orders">My Orders</Link>}
     </nav>
