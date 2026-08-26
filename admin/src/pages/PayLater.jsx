@@ -1,1 +1,110 @@
-import {useEffect,useState} from 'react';import {adminApi} from '../api';export default function PayLater(){const [users,setUsers]=useState([]);const [error,setError]=useState('');const load=()=>adminApi('/admin/paylater').then(setUsers).catch(e=>setError(e.message));useEffect(()=>{load()},[]);async function setStatus(u,status){let limit=u.payLater?.limit||u.payLater?.requestedLimit||0;let note=u.payLater?.note||'';if(status==='approved'){const x=prompt('Approved PayLater limit',String(limit));if(x===null)return;limit=Number(x);note=prompt('Optional admin note',note)||note}try{await adminApi(`/admin/paylater/${u._id}`,{method:'PATCH',body:JSON.stringify({status,limit,note})});load()}catch(e){alert(e.message)}}async function payment(u){const x=prompt(`Payment received from ${u.name}. Outstanding ₹${u.payLater?.used||0}`);if(x===null)return;try{await adminApi(`/admin/paylater/${u._id}/payment`,{method:'POST',body:JSON.stringify({amount:Number(x)})});load()}catch(e){alert(e.message)}}const due=users.reduce((s,u)=>s+(u.payLater?.used||0),0);return <><div className="admin-title"><div><small>PAYLATER MANAGEMENT</small><h1>Customer Credit Ledger</h1><p>Manual approval, limits, outstanding balances and payment recovery.</p></div><div className="title-metric"><small>Total outstanding</small><b>₹{due.toLocaleString()}</b></div></div>{error&&<div className="admin-alert">{error}</div>}<section className="panel"><div className="table-wrap"><table><thead><tr><th>Customer</th><th>Status</th><th>Requested</th><th>Limit</th><th>Used</th><th>Available</th><th>Due Date</th><th>Actions</th></tr></thead><tbody>{users.map(u=>{const p=u.payLater||{};return <tr key={u._id}><td><b>{u.name}</b><small className="table-sub">{u.phone||u.email}</small></td><td><span className={`badge status-${p.status}`}>{p.status}</span></td><td>₹{p.requestedLimit||0}</td><td>₹{p.limit||0}</td><td><b>₹{p.used||0}</b></td><td>₹{Math.max((p.limit||0)-(p.used||0),0)}</td><td>{p.dueDate?new Date(p.dueDate).toLocaleDateString('en-IN'):'—'}</td><td><div className="action-row">{p.status!=='approved'&&<button onClick={()=>setStatus(u,'approved')}>Approve</button>}<button className="muted-action" onClick={()=>setStatus(u,'blocked')}>Block</button>{(p.used||0)>0&&<button className="pay-action" onClick={()=>payment(u)}>Receive ₹</button>}</div></td></tr>})}</tbody></table></div></section><div className="management-note"><b>Manual approval only.</b> This dashboard does not automatically assess customer creditworthiness. Store management chooses the approval status and limit.</div></>}
+import {useEffect,useMemo,useState} from 'react';
+import {adminApi} from '../api';
+import '../paylater.css';
+
+const money=n=>`₹${Number(n||0).toLocaleString('en-IN')}`;
+const when=v=>v?new Date(v).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'}):'—';
+const digits=v=>String(v||'').replace(/\D/g,'');
+
+export default function PayLater(){
+  const [users,setUsers]=useState([]);
+  const [selectedId,setSelectedId]=useState(null);
+  const [error,setError]=useState('');
+  const [limit,setLimit]=useState('');
+  const [payment,setPayment]=useState('');
+  const [note,setNote]=useState('');
+  const [schedule,setSchedule]=useState('');
+  const [busy,setBusy]=useState(false);
+
+  const load=()=>adminApi('/admin/paylater').then(setUsers).catch(e=>setError(e.message));
+  useEffect(()=>{load()},[]);
+  const selected=useMemo(()=>users.find(u=>u._id===selectedId)||null,[users,selectedId]);
+  useEffect(()=>{if(selected){setLimit(String(selected.payLater?.limit||0));setPayment(String(selected.payLater?.used||''));setNote('');setSchedule('')}},[selectedId]);
+
+  const due=users.reduce((s,u)=>s+Number(u.payLater?.used||0),0);
+  const overdue=users.filter(u=>u.payLater?.used>0&&u.payLater?.dueDate&&new Date(u.payLater.dueDate)<new Date()).length;
+  const restricted=users.filter(u=>['suspended','banned','blocked'].includes(u.payLater?.status)).length;
+
+  async function mutate(fn){setBusy(true);setError('');try{await fn();await load()}catch(e){setError(e.message);alert(e.message)}finally{setBusy(false)}}
+  function openManage(u){setSelectedId(u._id)}
+
+  async function setStatus(status){
+    if(!selected)return;
+    if(status==='banned'&&!confirm(`Ban PayLater for ${selected.name}? Outstanding will remain payable and visible.`))return;
+    const label=status==='approved'?'Reactivate / approve':status;
+    await mutate(()=>adminApi(`/admin/paylater/${selected._id}`,{method:'PATCH',body:JSON.stringify({status,limit:Number(limit),note:note||`${label} by store management`})}));
+  }
+  async function updateLimit(){
+    const value=Number(limit);
+    if(!Number.isFinite(value)||value<Number(selected?.payLater?.used||0))return alert(`Limit cannot be below outstanding ${money(selected?.payLater?.used)}`);
+    await mutate(()=>adminApi(`/admin/paylater/${selected._id}`,{method:'PATCH',body:JSON.stringify({limit:value,note:note||'Credit limit manually adjusted by store management'})}));
+  }
+  async function receivePayment(){
+    const amount=Number(payment);
+    if(!amount||amount<=0||amount>Number(selected?.payLater?.used||0))return alert('Enter a valid received amount.');
+    if(!confirm(`Confirm that ${money(amount)} has actually been received from ${selected.name}?`))return;
+    await mutate(()=>adminApi(`/admin/paylater/${selected._id}/payment`,{method:'POST',body:JSON.stringify({amount,note:note||'Payment confirmed by store management'})}));
+  }
+  async function logAction(type,extra={}){
+    if(!selected)return;
+    await mutate(()=>adminApi(`/admin/paylater/${selected._id}/recovery`,{method:'POST',body:JSON.stringify({type,note,...extra})}));
+  }
+  async function callCustomer(){
+    if(!selected?.phone)return alert('Customer phone number is not available.');
+    await logAction('call');window.location.href=`tel:${selected.phone}`;
+  }
+  async function messageCustomer(){
+    if(!selected?.phone)return alert('Customer phone number is not available.');
+    await logAction('message');
+    const text=encodeURIComponent(`Hello ${selected.name}, this is SBN Kirana regarding your PayLater account. Outstanding: ${money(selected.payLater?.used)}. Please contact the store if you need help or want to discuss repayment.`);
+    window.open(`https://wa.me/${digits(selected.phone)}?text=${text}`,'_blank','noopener,noreferrer');
+  }
+  async function emailCustomer(){
+    if(!selected?.email)return alert('Customer email is not available.');
+    await logAction('email');
+    const subject=encodeURIComponent('SBN Kirana PayLater account reminder');
+    const body=encodeURIComponent(`Hello ${selected.name},\n\nYour current SBN PayLater outstanding is ${money(selected.payLater?.used)}.${selected.payLater?.dueDate?` Due date: ${new Date(selected.payLater.dueDate).toLocaleDateString('en-IN')}.`:''}\n\nPlease contact SBN Kirana if you have already paid, need help, or want to raise a dispute.\n\nThank you.`);
+    window.location.href=`mailto:${selected.email}?subject=${subject}&body=${body}`;
+  }
+  async function scheduleVisit(){
+    if(!schedule)return alert('Select a visit date and time.');
+    if(!note.trim())return alert('Add a respectful purpose/note for the visit.');
+    await logAction('home_visit',{scheduledFor:new Date(schedule).toISOString()});
+  }
+  async function promiseToPay(){
+    if(!schedule)return alert('Select the promised payment date.');
+    await logAction('promise_to_pay',{scheduledFor:new Date(schedule).toISOString()});
+  }
+  async function dispute(){await logAction('dispute',{note:note||'Customer account/payment dispute logged for manual review'})}
+  async function legalReview(){
+    if(!note.trim())return alert('Add factual notes before requesting legal review.');
+    if(!confirm('Log this account for legal review? This does NOT automatically start legal action.'))return;
+    await logAction('legal_review',{note:`Legal review requested: ${note}`});
+  }
+
+  return <>
+    <div className="admin-title"><div><small>PAYLATER MANAGEMENT</small><h1>Customer Credit & Recovery</h1><p>Manual limits, account controls, payment recovery and respectful follow-up history.</p></div></div>
+    <div className="recovery-kpis"><div><small>Total outstanding</small><b>{money(due)}</b></div><div><small>Overdue accounts</small><b>{overdue}</b></div><div><small>Restricted</small><b>{restricted}</b></div><div><small>Customers</small><b>{users.length}</b></div></div>
+    {error&&<div className="admin-alert">{error}</div>}
+    <section className="panel recovery-table"><div className="table-wrap"><table><thead><tr><th>Customer</th><th>Status</th><th>Limit</th><th>Outstanding</th><th>Available</th><th>Due</th><th>Recovery</th><th>Manage</th></tr></thead><tbody>{users.map(u=>{const p=u.payLater||{};return <tr key={u._id}><td><b>{u.name}</b><small className="table-sub">{u.phone||u.email}</small></td><td><span className={`badge credit-state ${p.status}`}>{String(p.status||'').replaceAll('_',' ')}</span></td><td>{money(p.limit)}</td><td><b>{money(p.used)}</b></td><td>{money(Math.max((p.limit||0)-(p.used||0),0))}</td><td>{p.dueDate?new Date(p.dueDate).toLocaleDateString('en-IN'):'—'}</td><td><span className="recovery-stage">{String(p.recoveryStatus||'current').replaceAll('_',' ')}</span></td><td><button className="manage-credit" onClick={()=>openManage(u)}>Manage →</button></td></tr>})}</tbody></table></div></section>
+    <div className="management-note"><b>Manual decisions only.</b> Limit changes, suspension, bans, visits and legal-review requests require store-management judgment. Contact should be respectful and compliant with applicable law; no harassment or automatic legal action is built into this system.</div>
+
+    {selected&&<div className="credit-modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setSelectedId(null)}}><section className="credit-modal">
+      <header><div><small>PAYLATER CUSTOMER</small><h2>{selected.name}</h2><p>{selected.phone||'No phone'} · {selected.email}</p></div><button onClick={()=>setSelectedId(null)}>×</button></header>
+      <div className="credit-customer-summary"><div><small>STATUS</small><b>{selected.payLater?.status}</b></div><div><small>LIMIT</small><b>{money(selected.payLater?.limit)}</b></div><div><small>OUTSTANDING</small><b>{money(selected.payLater?.used)}</b></div><div><small>DUE</small><b>{selected.payLater?.dueDate?new Date(selected.payLater.dueDate).toLocaleDateString('en-IN'):'—'}</b></div></div>
+      {selected.latestAddress&&<div className="recovery-address"><b>Latest delivery address</b><span>{[selected.latestAddress.fullName,selected.latestAddress.address,selected.latestAddress.city,selected.latestAddress.state,selected.latestAddress.pincode].filter(Boolean).join(', ')}</span><small>{selected.latestAddress.phone||selected.phone}</small></div>}
+
+      <div className="recovery-grid">
+        <section><h3>Credit limit & account</h3><label>Approved limit<input type="number" min={selected.payLater?.used||0} value={limit} onChange={e=>setLimit(e.target.value)}/></label><label>Admin note<textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Reason, conversation note, payment reference..."/></label><div className="recovery-actions"><button onClick={updateLimit} disabled={busy}>Update Limit</button><button className="good" onClick={()=>setStatus('approved')} disabled={busy}>Approve / Reactivate</button><button className="warn" onClick={()=>setStatus('suspended')} disabled={busy}>Suspend</button><button className="danger" onClick={()=>setStatus('banned')} disabled={busy}>Ban PayLater</button></div></section>
+
+        <section><h3>Receive payment</h3><p>Only record money after the store has actually received/verified it.</p><label>Amount received<input type="number" min="1" max={selected.payLater?.used||0} value={payment} onChange={e=>setPayment(e.target.value)}/></label><button className="receive-payment" onClick={receivePayment} disabled={busy||!selected.payLater?.used}>Confirm & Recover Payment</button></section>
+
+        <section><h3>Contact & reminders</h3><p>Each action is logged. Call/message/email buttons open your device app; they do not send anything automatically.</p><div className="contact-action-grid"><button onClick={callCustomer} disabled={busy}>☎ Call</button><button onClick={messageCustomer} disabled={busy}>💬 Message</button><button onClick={emailCustomer} disabled={busy}>✉ Email</button><button onClick={()=>logAction('note')} disabled={busy}>📝 Log Note</button></div></section>
+
+        <section><h3>Follow-up & escalation</h3><label>Date / time<input type="datetime-local" value={schedule} onChange={e=>setSchedule(e.target.value)}/></label><div className="recovery-actions"><button onClick={promiseToPay} disabled={busy}>Promise to Pay</button><button onClick={scheduleVisit} disabled={busy}>Schedule Home Visit</button><button className="soft-danger" onClick={dispute} disabled={busy}>Mark Dispute</button><button className="danger" onClick={legalReview} disabled={busy}>Request Legal Review</button></div><small className="compliance-copy">Home visits should be pre-notified, respectful and used only where lawful. “Legal Review” creates an internal review record; it does not automatically threaten, file or start legal proceedings.</small></section>
+      </div>
+
+      <section className="recovery-history"><div className="history-head"><div><small>AUDIT TRAIL</small><h3>Recovery history</h3></div><span>{selected.recoveryHistory?.length||0} recent</span></div>{selected.recoveryHistory?.length?<div className="history-list">{selected.recoveryHistory.map(a=><article key={a._id}><span className="history-icon">{a.type==='payment_received'?'₹':a.type==='call'?'☎':a.type==='message'?'💬':a.type==='email'?'✉':a.type==='home_visit'?'⌂':a.type==='legal_review'?'§':'•'}</span><div><b>{String(a.type).replaceAll('_',' ')}</b><p>{a.note||'Activity recorded'}</p><small>{when(a.createdAt)}{a.scheduledFor?` · Scheduled ${when(a.scheduledFor)}`:''}{a.admin?.name?` · ${a.admin.name}`:''}</small></div>{a.amount>0&&<strong>{money(a.amount)}</strong>}</article>)}</div>:<div className="empty-history">No recovery activity logged yet.</div>}</section>
+    </section></div>}
+  </>
+}
