@@ -2,12 +2,15 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 const payLaterSchema=new mongoose.Schema({
-  status:{type:String,enum:['not_requested','pending','approved','blocked'],default:'not_requested'},
+  status:{type:String,enum:['not_requested','pending','approved','blocked','suspended','banned'],default:'not_requested'},
   requestedLimit:{type:Number,default:0,min:0},
   limit:{type:Number,default:0,min:0},
   used:{type:Number,default:0,min:0},
   dueDate:Date,
   note:{type:String,default:''},
+  recoveryStatus:{type:String,enum:['current','contact_in_progress','promise_to_pay','home_visit_scheduled','legal_review','disputed','closed'],default:'current'},
+  nextFollowUpAt:Date,
+  lastRecoveryAt:Date,
   updatedAt:Date
 },{_id:false});
 
