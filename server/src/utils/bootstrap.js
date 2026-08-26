@@ -1,5 +1,6 @@
 import Product from '../models/Product.js';
 import User from '../models/User.js';
+import Offer from '../models/Offer.js';
 
 const products=[
   {name:'Aashirvaad Atta',description:'Whole wheat flour for soft rotis.',category:'Staples',image:'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=900&q=80',price:289,mrp:320,unit:'5 kg',stock:40,featured:true},
@@ -22,17 +23,15 @@ export async function bootstrapDatabase(){
   const productCount=await Product.countDocuments();
   if(productCount===0)await Product.insertMany(products);
 
+  const offerCount=await Offer.countDocuments();
+  if(offerCount===0)await Offer.create({title:'Welcome Basket Offer',code:'SBN10',description:'Save 10% on an eligible grocery basket.',type:'percent',value:10,minOrder:499,maxDiscount:100,active:true,featured:true});
+
   const email=(process.env.ADMIN_EMAIL||'').trim().toLowerCase();
   const password=process.env.ADMIN_PASSWORD||'';
   if(email&&password){
     let admin=await User.findOne({email});
     if(!admin){
-      await User.create({
-        name:process.env.ADMIN_NAME||'SBN Admin',
-        email,
-        password,
-        role:'admin'
-      });
+      await User.create({name:process.env.ADMIN_NAME||'SBN Admin',email,password,role:'admin'});
     }else if(admin.role!=='admin'){
       admin.role='admin';
       await admin.save();
