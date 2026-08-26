@@ -16,6 +16,8 @@ const schema=new mongoose.Schema({
   paymentMethod:{type:String,enum:['COD','UPI','PAYLATER'],default:'COD'},
   paymentStatus:{type:String,enum:['Pending','Paid','Due','Refunded'],default:'Pending'},
   payLaterDueDate:Date,
+  couponCode:{type:String,default:''},
+  discount:{type:Number,default:0},
   subtotal:Number,
   deliveryFee:Number,
   total:Number,
