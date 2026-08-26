@@ -31,13 +31,28 @@ app.use(cors({
 app.options(/.*/,cors());
 app.use(express.json({limit:'1mb'}));
 app.use(morgan('dev'));
-app.get('/api/health',(req,res)=>res.json({status:'ok',service:'SBN Kirana API',features:['paylater','inventory','reports','workers','cash']}));
+
+const health=(req,res)=>res.json({status:'ok',service:'SBN Kirana API',features:['paylater','inventory','reports','workers','cash']});
+
+// Primary API routes.
+app.get('/api/health',health);
 app.use('/api/auth',authRoutes);
 app.use('/api/products',productRoutes);
 app.use('/api/orders',orderRoutes);
 app.use('/api/contact',contactRoutes);
 app.use('/api/paylater',payLaterRoutes);
 app.use('/api/admin',adminRoutes);
+
+// Mirrored production routes. Keeping these outside /api avoids platform edge rules
+// that can interfere with selected /api paths while preserving the same backend.
+app.get('/service/health',health);
+app.use('/service/auth',authRoutes);
+app.use('/service/products',productRoutes);
+app.use('/service/orders',orderRoutes);
+app.use('/service/contact',contactRoutes);
+app.use('/service/paylater',payLaterRoutes);
+app.use('/service/admin',adminRoutes);
+
 app.use(notFound);
 app.use(errorHandler);
 export default app;
