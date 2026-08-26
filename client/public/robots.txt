@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://sbn-kirana-store.vercel.app/sitemap.xml
