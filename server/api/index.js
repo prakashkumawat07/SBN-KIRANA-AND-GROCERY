@@ -24,7 +24,7 @@ function applyCors(req,res){
 
 function applyHealthGateway(req){
   const parsed=new URL(req.url||'/', 'https://sbn-kirana.local');
-  if(parsed.pathname!=='/service/health'&&!parsed.pathname!=='/api/health')return;
+  if(parsed.pathname!=='/service/health'&&parsed.pathname!=='/api/health')return;
   const route=parsed.searchParams.get('__route');
   if(!route)return;
   const safe=allowedGatewayRoots.some(root=>route===root||route.startsWith(`${root}/`));
