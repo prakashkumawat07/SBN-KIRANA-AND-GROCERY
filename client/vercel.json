@@ -5,7 +5,7 @@
   "rewrites": [
     {
       "source": "/service/:path*",
-      "destination": "https://sbn-kirana-api-prakashkumawat12245-2350s-projects.vercel.app/service/:path*"
+      "destination": "https://sbn-kirana-api-prakashkumawat07-2026.vercel.app/service/:path*"
     },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
