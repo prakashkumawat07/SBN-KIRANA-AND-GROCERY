@@ -2,13 +2,17 @@ import {useState} from 'react';
 import {Link,NavLink,useNavigate} from 'react-router-dom';
 import {useAuth} from '../context/AuthContext';
 import {useCart} from '../context/CartContext';
+import '../account.css';
 
 export default function Navbar(){
   const {user,logout}=useAuth();
   const {count}=useCart();
   const nav=useNavigate();
   const [query,setQuery]=useState('');
+  const [accountOpen,setAccountOpen]=useState(false);
   function search(e){e.preventDefault();nav(`/products${query.trim()?`?search=${encodeURIComponent(query.trim())}`:''}`)}
+  function signOut(){setAccountOpen(false);logout();nav('/')}
+  const closeAccount=()=>setAccountOpen(false);
   return <>
     <div className="offer-strip"><span>⚡ Fast local delivery</span><span>💳 SBN PayLater available for approved customers</span><span>🚚 Free delivery above ₹499</span></div>
     <header className="market-header">
@@ -16,7 +20,22 @@ export default function Navbar(){
       <div className="delivery-location"><span>📍</span><div><small>Deliver to</small><b>Your neighbourhood</b></div></div>
       <form className="global-search" onSubmit={search}><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search groceries, staples, dairy and more"/><button aria-label="Search">⌕</button></form>
       <div className="market-actions">
-        {user?<div className="account-block"><small>Hello, {user.name?.split(' ')[0]}</small><b>My Account</b><button onClick={logout}>Logout</button></div>:<Link className="account-block" to="/login"><small>Hello, sign in</small><b>Account</b></Link>}
+        {user?<div className={`account-menu ${accountOpen?'open':''}`}>
+          <button className="account-trigger" onClick={()=>setAccountOpen(v=>!v)} aria-expanded={accountOpen}>
+            <span className="account-avatar">{user.name?.charAt(0)?.toUpperCase()||'U'}</span>
+            <span className="account-trigger-copy"><small>Hello, {user.name?.split(' ')[0]}</small><b>My Account⌄</b></span>
+          </button>
+          {accountOpen&&<div className="account-dropdown">
+            <div className="account-dropdown-head"><span>{user.name?.charAt(0)?.toUpperCase()||'U'}</span><div><b>{user.name}</b><small>{user.email}</small></div></div>
+            <Link to="/account" onClick={closeAccount}><span>👤</span><div><b>My Account</b><small>Profile & account overview</small></div></Link>
+            <Link to="/account#orders" onClick={closeAccount}><span>📦</span><div><b>Order Details</b><small>Track recent purchases</small></div></Link>
+            <Link to="/account#paylater" onClick={closeAccount}><span>₹</span><div><b>PayLater</b><small>Outstanding & payment</small></div></Link>
+            <Link to="/contact" onClick={closeAccount}><span>☎</span><div><b>Contact Us</b><small>Customer support</small></div></Link>
+            <Link to="/info/about" onClick={closeAccount}><span>🏪</span><div><b>About Us</b><small>Know SBN Kirana</small></div></Link>
+            <div className="account-dropdown-links"><Link to="/info/help" onClick={closeAccount}>Help Center</Link><Link to="/info/refund" onClick={closeAccount}>Refunds</Link></div>
+            <button className="account-logout" onClick={signOut}>↪ Logout</button>
+          </div>}
+        </div>:<Link className="account-block" to="/login"><small>Hello, sign in</small><b>Account</b></Link>}
         {user&&<Link className="paylater-nav" to="/paylater"><span>₹</span><div><small>SBN</small><b>PayLater</b></div></Link>}
         <Link className="market-cart" to="/cart"><span>🛒</span><b>{count}</b></Link>
       </div>
@@ -30,6 +49,7 @@ export default function Navbar(){
       <NavLink to="/products?category=Household">Home Care</NavLink>
       <Link className="nav-deal" to="/paylater">PayLater</Link>
       <Link to="/contact">Customer Service</Link>
+      {user&&<Link to="/account">My Account</Link>}
       {user&&<Link to="/orders">My Orders</Link>}
     </nav>
   </>
