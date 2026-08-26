@@ -1,5 +1,6 @@
 import {Routes,Route} from 'react-router-dom';
 import './marketplace.css';
+import './recovery-policy.css';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
