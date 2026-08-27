@@ -2,109 +2,23 @@ import {useEffect,useMemo,useState} from 'react';
 import {Link} from 'react-router-dom';
 import {api} from '../api';
 import {useAuth} from '../context/AuthContext';
+import ReferralCard from '../components/ReferralCard';
 import '../account.css';
 
 const money=n=>`₹${Number(n||0).toLocaleString('en-IN')}`;
 const date=v=>v?new Date(v).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):'—';
 
 export default function Account(){
-  const {user}=useAuth();
-  const [payLater,setPayLater]=useState(null);
-  const [orders,setOrders]=useState([]);
-  const [openOrder,setOpenOrder]=useState(null);
-  const [payAmount,setPayAmount]=useState('');
-  const [payMethod,setPayMethod]=useState('UPI / store confirmation');
-  const [payMsg,setPayMsg]=useState('');
-  const [error,setError]=useState('');
-
-  useEffect(()=>{
-    api('/paylater').then(d=>{setPayLater(d);if(d.used)setPayAmount(String(d.used))}).catch(()=>{});
-    api('/orders/mine').then(setOrders).catch(()=>{});
-  },[]);
-
-  const recent=useMemo(()=>orders.slice(0,4),[orders]);
-  const delivered=orders.filter(o=>o.status==='Delivered').length;
-
-  async function requestOutstandingPayment(e){
-    e.preventDefault();setPayMsg('');setError('');
-    const amount=Number(payAmount);
-    if(!payLater?.used)return setError('No outstanding PayLater balance is due.');
-    if(!amount||amount<=0||amount>payLater.used)return setError(`Enter an amount between ₹1 and ${money(payLater.used)}.`);
-    try{
-      await api('/contact',{method:'POST',body:JSON.stringify({
-        name:user?.name||'Customer',email:user?.email||'',phone:user?.phone||'',
-        subject:'PayLater payment confirmation request',
-        message:`Customer requested PayLater payment confirmation. Amount: ${money(amount)}. Preferred method: ${payMethod}. Current outstanding: ${money(payLater.used)}. Please confirm receipt in Admin PayLater Management before reducing the balance.`
-      })});
-      setPayMsg('Payment request sent to store management. Your outstanding will update after the store confirms receipt.');
-    }catch(e){setError(e.message)}
-  }
-
+  const {user}=useAuth();const [payLater,setPayLater]=useState(null);const [orders,setOrders]=useState([]);const [openOrder,setOpenOrder]=useState(null);const [payAmount,setPayAmount]=useState('');const [payMethod,setPayMethod]=useState('UPI / store confirmation');const [payMsg,setPayMsg]=useState('');const [error,setError]=useState('');
+  useEffect(()=>{api('/paylater').then(d=>{setPayLater(d);if(d.used)setPayAmount(String(d.used))}).catch(()=>{});api('/orders/mine').then(setOrders).catch(()=>{})},[]);
+  const recent=useMemo(()=>orders.slice(0,4),[orders]);const delivered=orders.filter(o=>o.status==='Delivered').length;
+  async function requestOutstandingPayment(e){e.preventDefault();setPayMsg('');setError('');const amount=Number(payAmount);if(!payLater?.used)return setError('No outstanding PayLater balance is due.');if(!amount||amount<=0||amount>payLater.used)return setError(`Enter an amount between ₹1 and ${money(payLater.used)}.`);try{await api('/contact',{method:'POST',body:JSON.stringify({name:user?.name||'Customer',email:user?.email||'',phone:user?.phone||'',subject:'PayLater payment confirmation request',message:`Customer requested PayLater payment confirmation. Amount: ${money(amount)}. Preferred method: ${payMethod}. Current outstanding: ${money(payLater.used)}. Please confirm receipt in Admin PayLater Management before reducing the balance.`})});setPayMsg('Payment request sent to store management. Your outstanding will update after the store confirms receipt.')}catch(e){setError(e.message)}}
   return <main className="account-page">
-    <section className="account-hero-panel">
-      <div className="account-profile-main">
-        <span className="account-big-avatar">{user?.name?.charAt(0)?.toUpperCase()||'U'}</span>
-        <div><span className="account-kicker">SBN CUSTOMER ACCOUNT</span><h1>Welcome back, {user?.name?.split(' ')[0]}</h1><p>Manage your orders, PayLater balance, support and account shortcuts from one place.</p></div>
-      </div>
-      <div className="account-member-card"><small>ACCOUNT</small><b>{user?.name}</b><span>{user?.email}</span>{user?.phone&&<span>{user.phone}</span>}<i>✓ Active customer</i></div>
-    </section>
-
-    <section className="account-stats">
-      <div><span>📦</span><small>Total Orders</small><strong>{orders.length}</strong></div>
-      <div><span>✓</span><small>Delivered</small><strong>{delivered}</strong></div>
-      <div><span>₹</span><small>PayLater Outstanding</small><strong>{money(payLater?.used)}</strong></div>
-      <div><span>💳</span><small>Available Credit</small><strong>{money(payLater?.available)}</strong></div>
-    </section>
-
-    <section className="account-layout">
-      <div className="account-main-column">
-        <section className="account-card" id="orders">
-          <div className="account-card-head"><div><span>ORDER CENTER</span><h2>Recent order details</h2></div><Link to="/orders">View all orders →</Link></div>
-          <div className="account-orders-list">
-            {recent.map(o=><article className="account-order" key={o._id}>
-              <div className="account-order-summary">
-                <div><small>ORDER</small><b>#{o._id.slice(-8).toUpperCase()}</b></div>
-                <div><small>DATE</small><b>{date(o.createdAt)}</b></div>
-                <div><small>TOTAL</small><b>{money(o.total)}</b></div>
-                <span className={`account-order-status ${String(o.status).toLowerCase().replaceAll(' ','-')}`}>{o.status}</span>
-                <button onClick={()=>setOpenOrder(openOrder===o._id?null:o._id)}>{openOrder===o._id?'Hide':'Details'}</button>
-              </div>
-              {openOrder===o._id&&<div className="account-order-details">
-                <div className="account-order-items">{o.items.map(i=><div key={i._id||i.name}><span>{i.name} × {i.quantity}</span><b>{money(i.price*i.quantity)}</b></div>)}</div>
-                <div className="account-order-meta"><p><b>Payment:</b> {o.paymentMethod} · {o.paymentStatus||'Pending'}</p>{o.payLaterDueDate&&<p><b>PayLater due:</b> {date(o.payLaterDueDate)}</p>}<p><b>Delivery to:</b> {[o.shippingAddress?.address,o.shippingAddress?.city,o.shippingAddress?.state,o.shippingAddress?.pincode].filter(Boolean).join(', ')||'Address saved with order'}</p></div>
-              </div>}
-            </article>)}
-            {!recent.length&&<div className="account-empty"><span>🛍️</span><h3>No orders yet</h3><p>Start shopping and your order history will appear here.</p><Link to="/products">Shop groceries →</Link></div>}
-          </div>
-        </section>
-
-        <section className="account-card paylater-account-card" id="paylater">
-          <div className="account-card-head"><div><span>SBN PAYLATER</span><h2>Credit & outstanding</h2></div><Link to="/paylater">Full PayLater details →</Link></div>
-          <div className="account-credit-grid">
-            <div className="account-credit-balance"><small>OUTSTANDING</small><strong>{money(payLater?.used)}</strong><span>Due {payLater?.dueDate?date(payLater.dueDate):'—'}</span></div>
-            <div className="account-credit-balance green"><small>AVAILABLE CREDIT</small><strong>{money(payLater?.available)}</strong><span>Limit {money(payLater?.limit)}</span></div>
-            <div className="account-credit-status"><small>STATUS</small><b>{payLater?.status?.replaceAll('_',' ')?.toUpperCase()||'NOT REQUESTED'}</b><span>Recovery: {payLater?.recoveryStatus?.replaceAll('_',' ')||'current'}</span></div>
-          </div>
-          <form className="outstanding-form" onSubmit={requestOutstandingPayment}>
-            <div><h3>Pay outstanding</h3><p>Submit the amount you want to settle. The balance is reduced only after store management confirms that payment was received.</p></div>
-            <label>Amount<input type="number" min="1" max={payLater?.used||0} value={payAmount} onChange={e=>setPayAmount(e.target.value)} placeholder="Enter amount"/></label>
-            <label>Payment method<select value={payMethod} onChange={e=>setPayMethod(e.target.value)}><option>UPI / store confirmation</option><option>Cash at store</option><option>Bank transfer / confirmation</option></select></label>
-            <button disabled={!payLater?.used}>Pay Outstanding / Send Request</button>
-          </form>
-          {payMsg&&<div className="account-success">✓ {payMsg}</div>}{error&&<div className="account-error">{error}</div>}
-          <div className="recovery-policy-card">
-            <div><span>PAYMENT RECOVERY POLICY</span><h3>Clear, respectful follow-up</h3><p>If a balance becomes due, SBN Kirana may contact you by phone, message or email and may ask you to confirm a repayment date. PayLater can be suspended or its limit reduced after manual review.</p></div>
-            <ul><li>You can raise a payment/account dispute at any time.</li><li>Home visits should be pre-notified, respectful and lawful.</li><li>Legal review is an internal review step, not automatic legal proceedings.</li><li>No harassment, intimidation, public shaming or misleading threats.</li></ul>
-            <div className="recovery-policy-footer">{payLater?.nextFollowUpAt&&<span>Next recorded follow-up: <b>{date(payLater.nextFollowUpAt)}</b></span>}<Link to="/info/recovery-policy">Read full recovery policy →</Link></div>
-          </div>
-        </section>
-      </div>
-
-      <aside className="account-side-column">
-        <section className="account-card account-profile-card"><span>MY PROFILE</span><h2>Account details</h2><dl><div><dt>Name</dt><dd>{user?.name||'—'}</dd></div><div><dt>Email</dt><dd>{user?.email||'—'}</dd></div><div><dt>Phone</dt><dd>{user?.phone||'Not added'}</dd></div><div><dt>Account status</dt><dd>Active</dd></div></dl></section>
-        <section className="account-card account-shortcuts"><span>QUICK LINKS</span><h2>Need something?</h2><Link to="/contact"><i>☎</i><div><b>Contact Us</b><small>Order, product or account support</small></div></Link><Link to="/info/about"><i>🏪</i><div><b>About SBN Kirana</b><small>Our store & service</small></div></Link><Link to="/info/help"><i>?</i><div><b>Help Center</b><small>Common support information</small></div></Link><Link to="/info/recovery-policy"><i>₹</i><div><b>Recovery Policy</b><small>PayLater payment follow-up rules</small></div></Link><Link to="/info/refund"><i>↩</i><div><b>Refund Policy</b><small>Returns and refunds</small></div></Link><Link to="/info/terms"><i>§</i><div><b>Terms & Conditions</b><small>Store usage terms</small></div></Link><Link to="/info/privacy"><i>🔒</i><div><b>Privacy</b><small>How account data is used</small></div></Link></section>
-        <section className="account-help-banner"><span>💬</span><div><b>Need personal help?</b><p>Send a message to SBN support and include your order number for faster assistance.</p><Link to="/contact">Contact support →</Link></div></section>
-      </aside>
-    </section>
+    <section className="account-hero-panel"><div className="account-profile-main"><span className="account-big-avatar">{user?.name?.charAt(0)?.toUpperCase()||'U'}</span><div><span className="account-kicker">SBN CUSTOMER ACCOUNT</span><h1>Welcome back, {user?.name?.split(' ')[0]}</h1><p>Manage your orders, PayLater balance, referrals, support and account shortcuts from one place.</p></div></div><div className="account-member-card"><small>ACCOUNT</small><b>{user?.name}</b><span>{user?.email}</span>{user?.phone&&<span>{user.phone}</span>}<i>✓ Active customer</i></div></section>
+    <section className="account-stats"><div><span>📦</span><small>Total Orders</small><strong>{orders.length}</strong></div><div><span>✓</span><small>Delivered</small><strong>{delivered}</strong></div><div><span>₹</span><small>PayLater Outstanding</small><strong>{money(payLater?.used)}</strong></div><div><span>🤝</span><small>Referrals</small><strong>{user?.referralCount||0}</strong></div></section>
+    <section className="account-layout"><div className="account-main-column">
+      <section className="account-card" id="orders"><div className="account-card-head"><div><span>ORDER CENTER</span><h2>Recent order details</h2></div><Link to="/orders">View all orders →</Link></div><div className="account-orders-list">{recent.map(o=><article className="account-order" key={o._id}><div className="account-order-summary"><div><small>ORDER</small><b>#{o._id.slice(-8).toUpperCase()}</b></div><div><small>DATE</small><b>{date(o.createdAt)}</b></div><div><small>TOTAL</small><b>{money(o.total)}</b></div><span className={`account-order-status ${String(o.status).toLowerCase().replaceAll(' ','-')}`}>{o.status}</span><button onClick={()=>setOpenOrder(openOrder===o._id?null:o._id)}>{openOrder===o._id?'Hide':'Details'}</button></div>{openOrder===o._id&&<div className="account-order-details"><div className="account-order-items">{o.items.map(i=><div key={i._id||i.name}><span>{i.name} × {i.quantity}</span><b>{money(i.price*i.quantity)}</b></div>)}</div><div className="account-order-meta"><p><b>Payment:</b> {o.paymentMethod} · {o.paymentStatus||'Pending'}</p>{o.payLaterDueDate&&<p><b>PayLater due:</b> {date(o.payLaterDueDate)}</p>}<p><b>Delivery to:</b> {[o.shippingAddress?.address,o.shippingAddress?.city,o.shippingAddress?.state,o.shippingAddress?.pincode].filter(Boolean).join(', ')||'Address saved with order'}</p></div></div>}</article>)}{!recent.length&&<div className="account-empty"><span>🛍️</span><h3>No orders yet</h3><p>Start shopping and your order history will appear here.</p><Link to="/products">Shop groceries →</Link></div>}</div></section>
+      <section className="account-card paylater-account-card" id="paylater"><div className="account-card-head"><div><span>SBN PAYLATER</span><h2>Credit & outstanding</h2></div><Link to="/paylater">Full PayLater details →</Link></div><div className="account-credit-grid"><div className="account-credit-balance"><small>OUTSTANDING</small><strong>{money(payLater?.used)}</strong><span>Due {payLater?.dueDate?date(payLater.dueDate):'—'}</span></div><div className="account-credit-balance green"><small>AVAILABLE CREDIT</small><strong>{money(payLater?.available)}</strong><span>Limit {money(payLater?.limit)}</span></div><div className="account-credit-status"><small>STATUS</small><b>{payLater?.status?.replaceAll('_',' ')?.toUpperCase()||'NOT REQUESTED'}</b><span>Recovery: {payLater?.recoveryStatus?.replaceAll('_',' ')||'current'}</span></div></div><form className="outstanding-form" onSubmit={requestOutstandingPayment}><div><h3>Pay outstanding</h3><p>Submit the amount you want to settle. The balance is reduced only after store management confirms that payment was received.</p></div><label>Amount<input type="number" min="1" max={payLater?.used||0} value={payAmount} onChange={e=>setPayAmount(e.target.value)} placeholder="Enter amount"/></label><label>Payment method<select value={payMethod} onChange={e=>setPayMethod(e.target.value)}><option>UPI / store confirmation</option><option>Cash at store</option><option>Bank transfer / confirmation</option></select></label><button disabled={!payLater?.used}>Pay Outstanding / Send Request</button></form>{payMsg&&<div className="account-success">✓ {payMsg}</div>}{error&&<div className="account-error">{error}</div>}<div className="recovery-policy-card"><div><span>PAYMENT RECOVERY POLICY</span><h3>Clear, respectful follow-up</h3><p>If a balance becomes due, SBN Kirana may contact you by phone, message or email and may ask you to confirm a repayment date. PayLater can be suspended or its limit reduced after manual review.</p></div><ul><li>You can raise a payment/account dispute at any time.</li><li>Home visits should be pre-notified, respectful and lawful.</li><li>Legal review is an internal review step, not automatic legal proceedings.</li><li>No harassment, intimidation, public shaming or misleading threats.</li></ul><div className="recovery-policy-footer">{payLater?.nextFollowUpAt&&<span>Next recorded follow-up: <b>{date(payLater.nextFollowUpAt)}</b></span>}<Link to="/info/recovery-policy">Read full recovery policy →</Link></div></div></section>
+    </div><aside className="account-side-column"><section className="account-card account-profile-card"><span>MY PROFILE</span><h2>Account details</h2><dl><div><dt>Name</dt><dd>{user?.name||'—'}</dd></div><div><dt>Email</dt><dd>{user?.email||'—'}</dd></div><div><dt>Phone</dt><dd>{user?.phone||'Not added'}</dd></div><div><dt>Account status</dt><dd>Active</dd></div></dl></section><ReferralCard/><section className="account-card account-shortcuts"><span>QUICK LINKS</span><h2>Need something?</h2><Link to="/wishlist"><i>♥</i><div><b>Wishlist</b><small>Saved products</small></div></Link><Link to="/contact"><i>☎</i><div><b>Contact Us</b><small>Order, product or account support</small></div></Link><Link to="/info/about"><i>🏪</i><div><b>About SBN Kirana</b><small>Our store & service</small></div></Link><Link to="/info/help"><i>?</i><div><b>Help Center</b><small>Common support information</small></div></Link><Link to="/info/recovery-policy"><i>₹</i><div><b>Recovery Policy</b><small>PayLater payment follow-up rules</small></div></Link><Link to="/info/refund"><i>↩</i><div><b>Refund Policy</b><small>Returns and refunds</small></div></Link></section><section className="account-help-banner"><span>💬</span><div><b>Need personal help?</b><p>Send a message to SBN support and include your order number for faster assistance.</p><Link to="/contact">Contact support →</Link></div></section></aside></section>
   </main>
 }
