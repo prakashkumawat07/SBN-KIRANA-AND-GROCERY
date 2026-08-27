@@ -21,6 +21,9 @@ const schema=new mongoose.Schema({
   password:{type:String,required:true,minlength:6,select:false},
   role:{type:String,enum:['customer','admin'],default:'customer'},
   isActive:{type:Boolean,default:true},
+  referralCode:{type:String,unique:true,sparse:true,index:true},
+  referredBy:{type:mongoose.Schema.Types.ObjectId,ref:'User',default:null},
+  referralCount:{type:Number,default:0,min:0},
   payLater:{type:payLaterSchema,default:()=>({})}
 },{timestamps:true});
 
