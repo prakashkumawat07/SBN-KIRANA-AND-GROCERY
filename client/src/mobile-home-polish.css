@@ -1,13 +1,21 @@
 @media(max-width:760px){
   .route-footer-other{display:none!important}.route-footer-home{display:block}.route-footer-home .mega-footer{padding-bottom:78px!important}
   .home-promo-shell{touch-action:pan-y;user-select:none}
-  .home-first-product-grid{display:flex!important;grid-template-columns:none!important;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch;gap:10px!important;padding:4px 2px 10px;margin-right:-10px;scrollbar-width:none}
+
+  /* Flipkart-style mobile product shelf: two visible rows, swipe sideways for more columns. */
+  .home-first-product-grid{display:grid!important;grid-template-rows:repeat(2,auto)!important;grid-template-columns:none!important;grid-auto-flow:column;grid-auto-columns:minmax(154px,42vw);overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch;gap:10px!important;padding:4px 2px 12px;margin-right:-10px;scrollbar-width:none;align-items:stretch}
   .home-first-product-grid::-webkit-scrollbar,.home-marketing-showcase::-webkit-scrollbar,.rail-items::-webkit-scrollbar{display:none}
-  .home-first-product-grid>.product-card{flex:0 0 min(44vw,190px);min-width:154px;max-width:190px;scroll-snap-align:start;scroll-snap-stop:normal;border-radius:14px!important}
-  .home-first-product-grid .product-image{height:128px!important}.home-first-product-grid .product-body{padding:10px!important}.home-first-product-grid .product-body h3{font-size:12px!important}.home-first-product-grid .price-row strong{font-size:17px!important}
+  .home-first-product-grid>.product-card{width:auto!important;min-width:0!important;max-width:none!important;scroll-snap-align:start;scroll-snap-stop:normal;border-radius:14px!important;overflow:hidden}
+  .home-first-product-grid .product-image{height:118px!important}.home-first-product-grid .product-body{padding:9px!important}.home-first-product-grid .product-body h3{font-size:12px!important;min-height:30px;white-space:normal!important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.home-first-product-grid .category{font-size:7px!important}.home-first-product-grid .unit{font-size:9px!important}.home-first-product-grid .price-row strong{font-size:16px!important}.home-first-product-grid .product-buy-actions{margin-top:6px!important}.home-first-product-grid .add-cart-btn{min-height:36px!important;font-size:10px!important;padding:7px!important}
+  .home-first-product-grid::after{content:'Swipe for more →';display:flex;align-items:center;justify-content:center;grid-row:1/3;width:78px;min-height:100%;color:#177245;background:#eef8f1;border:1px dashed #b9dbc5;border-radius:14px;font-size:9px;font-weight:900;text-align:center;padding:8px;scroll-snap-align:end}
+
   .home-marketing-showcase{display:flex!important;grid-template-columns:none!important;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch;gap:10px!important;padding:0 10px 8px!important;margin:0 0 12px!important;scrollbar-width:none}
   .home-marketing-showcase>.home-marketing-card{flex:0 0 82vw;max-width:360px;min-height:142px!important;scroll-snap-align:start;border-radius:16px!important;padding:17px!important}.home-marketing-card:last-child{grid-column:auto!important}.home-marketing-card h2{font-size:19px!important}.home-marketing-card>span{font-size:46px!important}
   .rail-items{scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none}.rail-items>a{scroll-snap-align:start}
   .home-product-first{overflow:hidden}.home-promo-dots button{min-width:22px}.home-promo-arrow{width:34px;height:34px}
 }
-@media(max-width:420px){.home-first-product-grid>.product-card{flex-basis:46vw;min-width:150px}.home-marketing-showcase>.home-marketing-card{flex-basis:86vw}}
+@media(max-width:420px){
+  .home-first-product-grid{grid-auto-columns:minmax(145px,45vw)}
+  .home-first-product-grid .product-image{height:112px!important}
+  .home-marketing-showcase>.home-marketing-card{flex-basis:86vw}
+}
