@@ -6,7 +6,7 @@ import '../account.css';
 
 export default function Navbar(){
   const {user,logout}=useAuth();
-  const {count}=useCart();
+  const {count,subtotal}=useCart();
   const nav=useNavigate();
   const [query,setQuery]=useState('');
   const [accountOpen,setAccountOpen]=useState(false);
@@ -14,11 +14,11 @@ export default function Navbar(){
   function signOut(){setAccountOpen(false);logout();nav('/')}
   const closeAccount=()=>setAccountOpen(false);
   return <>
-    <div className="offer-strip"><span>⚡ Fast local delivery</span><span>📦 Bulk quotation available</span><span>🚚 Free delivery above ₹499</span></div>
+    <div className="offer-strip"><span>⚡ Quick local fulfilment</span><span>🏷️ Store offers available at checkout</span><span>🚚 Free delivery above ₹499</span></div>
     <header className="market-header">
       <Link className="market-logo" to="/"><img src="/sbn-kirana-logo.svg" alt="SBN Kirana"/></Link>
       <div className="delivery-location"><span>📍</span><div><small>Deliver to</small><b>Your neighbourhood</b></div></div>
-      <form className="global-search" onSubmit={search}><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search groceries, staples, dairy and more"/><button aria-label="Search">⌕</button></form>
+      <form className="global-search" onSubmit={search}><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search staples, dairy, snacks, home care and more"/><button aria-label="Search">⌕</button></form>
       <div className="market-actions">
         {user?<div className={`account-menu ${accountOpen?'open':''}`}>
           <button className="account-trigger" onClick={()=>setAccountOpen(v=>!v)} aria-expanded={accountOpen}>
@@ -44,17 +44,17 @@ export default function Navbar(){
     </header>
     <nav className="category-nav">
       <Link to="/products"><b>☰ All Categories</b></Link>
-      <NavLink to="/products?category=Fruits%20%26%20Vegetables">Fresh</NavLink>
       <NavLink to="/products?category=Staples">Staples</NavLink>
       <NavLink to="/products?category=Dairy">Dairy</NavLink>
       <NavLink to="/products?category=Snacks">Snacks</NavLink>
       <NavLink to="/products?category=Household">Home Care</NavLink>
-      <Link className="nav-deal" to="/paylater">PayLater</Link>
+      <Link className="nav-deal" to="/products">Offers</Link>
+      <Link to="/paylater">PayLater</Link>
       <Link to="/bulk-orders">Bulk Orders</Link>
       <Link to="/contact">Customer Service</Link>
       <Link to="/wishlist">Wishlist</Link>
-      {user&&<Link to="/account">My Account</Link>}
       {user&&<Link to="/orders">My Orders</Link>}
     </nav>
+    {count>0&&<div className="cart-conversion-bar"><Link to="/cart" className="cart-conversion-summary"><span>🛒</span><div><b>{count} item{count===1?'':'s'} in your cart</b><small>Basket total ₹{Number(subtotal||0).toLocaleString('en-IN')}</small></div></Link><Link className="cart-conversion-checkout" to="/checkout">Checkout now →</Link></div>}
   </>
 }
