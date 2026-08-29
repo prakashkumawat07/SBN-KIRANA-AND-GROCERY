@@ -4,6 +4,7 @@ import {api} from '../api';
 import ProductCard from '../components/ProductCard';
 import {filterFallbackProducts} from '../data/fallbackProducts';
 const cats=['All','Staples','Dairy','Snacks','Beverages','Household'];
+const visible=p=>p?.category!=='Fruits & Vegetables';
 export default function Products(){
   const [params]=useSearchParams();
   const [products,setProducts]=useState([]);
@@ -20,8 +21,8 @@ export default function Products(){
     if(category!=='All')q.set('category',category);
     setLoading(true);setOffline(false);
     api(`/products?${q}`)
-      .then(data=>{if(active)setProducts(Array.isArray(data)?data:[])})
-      .catch(()=>{if(active){setProducts(filterFallbackProducts(search,category));setOffline(true)}})
+      .then(data=>{if(active)setProducts((Array.isArray(data)?data:[]).filter(visible))})
+      .catch(()=>{if(active){setProducts(filterFallbackProducts(search,category).filter(visible));setOffline(true)}})
       .finally(()=>{if(active)setLoading(false)});
     return()=>{active=false};
   },[search,category]);
