@@ -44,6 +44,13 @@ export async function submitPayLaterApplication(req,res,next){
   }catch(e){next(e)}
 }
 
+export async function adminPayLaterApplications(req,res,next){
+  try{
+    const apps=await PayLaterApplication.find().select('-proof.data').populate('user','name email phone payLater').populate('reviewedBy','name email').sort({updatedAt:-1}).lean();
+    res.json(apps);
+  }catch(e){next(e)}
+}
+
 export async function adminPayLaterApplication(req,res,next){
   try{
     const app=await PayLaterApplication.findOne({user:req.params.id}).populate('user','name email phone payLater').populate('reviewedBy','name email').lean();
