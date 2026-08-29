@@ -28,7 +28,7 @@ const schema=new mongoose.Schema({
   email:{type:String,required:true,unique:true,lowercase:true,trim:true},
   phone:{type:String,trim:true},
   password:{type:String,required:true,minlength:10,select:false},
-  role:{type:String,enum:['customer','admin'],default:'customer'},
+  role:{type:String,enum:['customer','admin','pos'],default:'customer'},
   isActive:{type:Boolean,default:true},
   sessionVersion:{type:Number,default:0,min:0},
   lastPasswordChangedAt:{type:Date,default:null},
