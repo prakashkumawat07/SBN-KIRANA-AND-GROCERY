@@ -63,7 +63,7 @@ export default function Navbar(){
       <NavLink to="/products?category=Dairy">Dairy</NavLink>
       <NavLink to="/products?category=Snacks">Snacks</NavLink>
       <NavLink to="/products?category=Household">Home Care</NavLink>
-      <Link className="nav-deal" to="/products">Offers</Link>
+      <NavLink className="nav-deal" to="/deals">Top Deals</NavLink>
       <Link to="/paylater">PayLater</Link>
       <Link to="/bulk-orders">Bulk Orders</Link>
       <Link to="/contact">Customer Service</Link>

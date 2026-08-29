@@ -10,6 +10,9 @@ const validImage=(value,maxDataLength)=>{
   return false;
 };
 
+const DEAL_RAILS=['hot_deals','trending','best_value','top_picks','daily_essentials','staples','dairy','snacks','home_care'];
+const CUSTOMER_BADGES=['none','limited','selling_fast','popular','fresh','best_value','hot_deal','trending','today_pick'];
+
 const productImageSchema=new mongoose.Schema({
   src:{type:String,required:true,validate:{validator:v=>validImage(v,430000),message:'Invalid product image'}},
   thumbnail:{type:String,default:'',validate:{validator:v=>!v||validImage(v,125000),message:'Invalid product thumbnail'}},
@@ -29,7 +32,10 @@ const schema=new mongoose.Schema({
   stock:{type:Number,required:true,min:0,default:0},
   stockUnit:{type:String,enum:['qty','kg','g','ltr','ml','pack'],default:'qty'},
   lowStockThreshold:{type:Number,default:10,min:0},
-  customerBadge:{type:String,enum:['none','limited','selling_fast','popular','fresh','best_value'],default:'none'},
+  customerBadge:{type:String,enum:CUSTOMER_BADGES,default:'none'},
+  dealRails:{type:[{type:String,enum:DEAL_RAILS}],default:[],validate:{validator:v=>v.length<=9,message:'Too many deal rails selected'}},
+  dealPriority:{type:Number,default:0,min:0,max:100},
+  dealLabel:{type:String,default:'',trim:true,maxlength:80},
   image:{type:String,required:true,validate:{validator:v=>validImage(v,125000),message:'Invalid primary product image'}},
   images:{type:[productImageSchema],default:[],validate:{validator:v=>v.length<=5,message:'Maximum 5 product images are allowed'}},
   description:{type:String,default:'',trim:true,maxlength:2500},
@@ -51,6 +57,8 @@ schema.pre('validate',function(next){
     this.images=[{src:this.image,thumbnail:this.image,alt:this.name}];
   }
   this.tags=[...new Set((this.tags||[]).map(v=>String(v||'').trim()).filter(Boolean))].slice(0,12);
+  this.dealRails=[...new Set((this.dealRails||[]).map(v=>String(v||'').trim()).filter(v=>DEAL_RAILS.includes(v)))];
+  this.dealLabel=String(this.dealLabel||'').replace(/[<>\u0000-\u001F]/g,'').trim().slice(0,80);
   next();
 });
 
