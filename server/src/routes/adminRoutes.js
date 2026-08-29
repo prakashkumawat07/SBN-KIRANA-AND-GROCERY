@@ -1,5 +1,6 @@
 import {Router} from 'express';
 import {protect,adminOnly} from '../middleware/auth.js';
+import {requireStrongPassword} from '../middleware/security.js';
 import {
   dashboard,products,createProduct,updateProduct,deleteProduct,orders,updateOrderStatus,customers,messages,
   payLaterCustomers,updatePayLater,recordPayLaterPayment,recordRecoveryAction,stock,updateStock,reports,
@@ -27,5 +28,5 @@ r.get('/offers',offers);r.post('/offers',createOffer);r.patch('/offers/:id',upda
 r.get('/reviews',adminReviews);r.patch('/reviews/:id',moderateReview);r.delete('/reviews/:id',deleteReview);
 r.get('/workers',workers);r.post('/workers',createWorker);r.patch('/workers/:id',updateWorker);r.delete('/workers/:id',deleteWorker);
 r.get('/cash',cashEntries);r.post('/cash',createCashEntry);r.delete('/cash/:id',deleteCashEntry);
-r.get('/admins',admins);r.post('/admins',createAdmin);r.patch('/admins/:id',updateAdmin);
+r.get('/admins',admins);r.post('/admins',requireStrongPassword,createAdmin);r.patch('/admins/:id',updateAdmin);
 export default r;
