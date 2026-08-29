@@ -1,5 +1,5 @@
 import {useEffect,useState} from 'react';
-import {Link,useNavigate,useParams} from 'react-router-dom';
+import {Link,useLocation,useNavigate,useParams} from 'react-router-dom';
 import {api} from '../api';
 import {useCart} from '../context/CartContext';
 import {useAuth} from '../context/AuthContext';
@@ -8,11 +8,12 @@ import ProductCard from '../components/ProductCard';
 const WISH='sbn_wishlist';
 const stars=n=>'★★★★★'.slice(0,Math.round(Number(n)||0))+'☆☆☆☆☆'.slice(0,5-Math.round(Number(n)||0));
 export default function ProductDetail(){
-  const {id}=useParams();const nav=useNavigate();const {addToCart}=useCart();const {user}=useAuth();
+  const {id}=useParams();const nav=useNavigate();const location=useLocation();const {addToCart}=useCart();const {user}=useAuth();
   const [product,setProduct]=useState(null);const [related,setRelated]=useState([]);const [error,setError]=useState('');const [saved,setSaved]=useState(false);const [reviews,setReviews]=useState({average:0,count:0,reviews:[]});const [eligibility,setEligibility]=useState(null);const [reviewForm,setReviewForm]=useState({rating:5,title:'',comment:''});const [reviewMsg,setReviewMsg]=useState('');
   const loadReviews=()=>api(`/reviews/${id}`).then(setReviews).catch(()=>{});
   const loadEligibility=()=>user?api(`/reviews/${id}/eligibility`).then(d=>{setEligibility(d);if(d.existing)setReviewForm({rating:d.existing.rating||5,title:d.existing.title||'',comment:d.existing.comment||''})}).catch(()=>setEligibility({eligible:false,existing:null})):setEligibility(null);
   useEffect(()=>{setError('');setEligibility(null);setReviewMsg('');loadReviews();loadEligibility();api(`/products/${id}`).then(p=>{setProduct(p);document.title=`${p.name} | SBN Kirana`;const d=document.querySelector('meta[name="description"]');if(d)d.setAttribute('content',`${p.name} ${p.unit||''} at SBN Kirana. ${p.description||'Shop groceries and daily essentials online.'}`);const ids=JSON.parse(localStorage.getItem(WISH)||'[]');setSaved(ids.includes(p._id));return api(`/products?category=${encodeURIComponent(p.category)}`)}).then(list=>setRelated((list||[]).filter(x=>x._id!==id&&x.category!=='Fruits & Vegetables').slice(0,4))).catch(e=>setError(e.message));return()=>{document.title='SBN Kirana | Online Grocery & Daily Essentials'}},[id,user?.id]);
+  useEffect(()=>{if(location.hash==='#rate-product'&&eligibility?.eligible){const timer=setTimeout(()=>document.getElementById('rate-product')?.scrollIntoView({behavior:'smooth',block:'start'}),120);return()=>clearTimeout(timer)}},[location.hash,eligibility?.eligible,id]);
   function toggleSave(){if(!product)return;let ids=JSON.parse(localStorage.getItem(WISH)||'[]');ids=ids.includes(product._id)?ids.filter(x=>x!==product._id):[product._id,...ids];localStorage.setItem(WISH,JSON.stringify(ids));setSaved(ids.includes(product._id))}
   function share(){const url=window.location.href;const text=encodeURIComponent(`Check ${product.name} on SBN Kirana – ₹${product.price} ${url}`);window.open(`https://wa.me/?text=${text}`,'_blank','noopener,noreferrer')}
   function buyNow(){if(!product?.stock)return;addToCart(product);nav('/checkout')}
