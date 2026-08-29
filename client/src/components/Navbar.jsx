@@ -14,7 +14,7 @@ export default function Navbar(){
   function signOut(){setAccountOpen(false);logout();nav('/')}
   const closeAccount=()=>setAccountOpen(false);
   return <>
-    <div className="offer-strip"><span>⚡ Fast local delivery</span><span>💳 SBN PayLater available for approved customers</span><span>🚚 Free delivery above ₹499</span></div>
+    <div className="offer-strip"><span>⚡ Fast local delivery</span><span>📦 Bulk quotation available</span><span>🚚 Free delivery above ₹499</span></div>
     <header className="market-header">
       <Link className="market-logo" to="/"><img src="/sbn-kirana-logo.svg" alt="SBN Kirana"/></Link>
       <div className="delivery-location"><span>📍</span><div><small>Deliver to</small><b>Your neighbourhood</b></div></div>
@@ -29,6 +29,7 @@ export default function Navbar(){
             <div className="account-dropdown-head"><span>{user.name?.charAt(0)?.toUpperCase()||'U'}</span><div><b>{user.name}</b><small>{user.email}</small></div></div>
             <Link to="/account" onClick={closeAccount}><span>👤</span><div><b>My Account</b><small>Profile & account overview</small></div></Link>
             <Link to="/account#orders" onClick={closeAccount}><span>📦</span><div><b>Order Details</b><small>Track recent purchases</small></div></Link>
+            <Link to="/bulk-orders" onClick={closeAccount}><span>📋</span><div><b>Bulk Orders</b><small>Lists, quotations & delivery</small></div></Link>
             <Link to="/wishlist" onClick={closeAccount}><span>♥</span><div><b>My Wishlist</b><small>Saved products</small></div></Link>
             <Link to="/account#paylater" onClick={closeAccount}><span>₹</span><div><b>PayLater</b><small>Outstanding & payment</small></div></Link>
             <Link to="/contact" onClick={closeAccount}><span>☎</span><div><b>Contact Us</b><small>Customer support</small></div></Link>
@@ -49,6 +50,7 @@ export default function Navbar(){
       <NavLink to="/products?category=Snacks">Snacks</NavLink>
       <NavLink to="/products?category=Household">Home Care</NavLink>
       <Link className="nav-deal" to="/paylater">PayLater</Link>
+      <Link to="/bulk-orders">Bulk Orders</Link>
       <Link to="/contact">Customer Service</Link>
       <Link to="/wishlist">Wishlist</Link>
       {user&&<Link to="/account">My Account</Link>}
