@@ -4,10 +4,11 @@ import {requireStrongPassword} from '../middleware/security.js';
 import {auditAdminWrites} from '../middleware/adminAudit.js';
 import {
   dashboard,products,createProduct,updateProduct,deleteProduct,orders,updateOrderStatus,customers,messages,
-  payLaterCustomers,updatePayLater,recordPayLaterPayment,recordRecoveryAction,stock,updateStock,reports,
+  payLaterCustomers,updatePayLater,recordPayLaterPayment,recordRecoveryAction,stock,updateStock,
   workers,createWorker,updateWorker,deleteWorker,cashEntries,createCashEntry,deleteCashEntry,
   admins,createAdmin,updateAdmin
 } from '../controllers/adminController.js';
+import {reportCenter} from '../controllers/reportController.js';
 import {offers,createOffer,updateOffer,deleteOffer} from '../controllers/adminMarketingController.js';
 import {adminReviews,moderateReview,deleteReview} from '../controllers/reviewController.js';
 import {adminBulkOrders,adminBulkOrderDetail,updateQuotation,updateBulkStatus,updateBulkPayment,updateBulkDelivery} from '../controllers/bulkOrderController.js';
@@ -30,7 +31,7 @@ r.get('/customers',customers);r.get('/messages',messages);
 r.get('/paylater',payLaterCustomers);r.get('/paylater-applications',adminPayLaterApplications);r.get('/paylater/:id/application',adminPayLaterApplication);r.patch('/paylater/:id/application',adminVerifyPayLaterApplication);r.post('/paylater/:id/requirements',adminRequestPayLaterRequirements);r.patch('/paylater/:id/requirements/:requirementId',adminReviewPayLaterRequirement);r.post('/paylater/:id/decision',adminDecidePayLaterApplication);r.patch('/paylater/:id',updatePayLater);r.post('/paylater/:id/payment',recordPayLaterPayment);r.post('/paylater/:id/recovery',recordRecoveryAction);
 r.get('/paylater-payments',adminPayLaterPayments);r.get('/paylater-payments/:id/proof',adminPayLaterPaymentProof);r.patch('/paylater-payments/:id/review',adminReviewPayLaterPayment);
 r.get('/stock',stock);r.patch('/stock/:id',updateStock);
-r.get('/reports',reports);
+r.get('/reports',reportCenter);
 r.get('/offers',offers);r.post('/offers',createOffer);r.patch('/offers/:id',updateOffer);r.delete('/offers/:id',deleteOffer);
 r.get('/reviews',adminReviews);r.patch('/reviews/:id',moderateReview);r.delete('/reviews/:id',deleteReview);
 r.get('/workers',workers);r.post('/workers',createWorker);r.patch('/workers/:id',updateWorker);r.delete('/workers/:id',deleteWorker);
