@@ -9,12 +9,14 @@ import {
 import {offers,createOffer,updateOffer,deleteOffer} from '../controllers/adminMarketingController.js';
 import {adminReviews,moderateReview,deleteReview} from '../controllers/reviewController.js';
 import {adminBulkOrders,adminBulkOrderDetail,updateQuotation,updateBulkStatus,updateBulkPayment,updateBulkDelivery} from '../controllers/bulkOrderController.js';
+import {posSales,posSummary,createPosSale,updatePosPayment} from '../controllers/posController.js';
 
 const r=Router();
 r.use(protect,adminOnly);
 r.get('/dashboard',dashboard);
 r.get('/products',products);r.post('/products',createProduct);r.put('/products/:id',updateProduct);r.delete('/products/:id',deleteProduct);
 r.get('/orders',orders);r.patch('/orders/:id/status',updateOrderStatus);
+r.get('/pos',posSales);r.get('/pos/summary',posSummary);r.post('/pos',createPosSale);r.patch('/pos/:id/payment',updatePosPayment);
 r.get('/bulk-orders',adminBulkOrders);r.get('/bulk-orders/:id',adminBulkOrderDetail);r.patch('/bulk-orders/:id/quotation',updateQuotation);r.patch('/bulk-orders/:id/status',updateBulkStatus);r.patch('/bulk-orders/:id/payment',updateBulkPayment);r.patch('/bulk-orders/:id/delivery',updateBulkDelivery);
 r.get('/customers',customers);r.get('/messages',messages);
 r.get('/paylater',payLaterCustomers);r.patch('/paylater/:id',updatePayLater);r.post('/paylater/:id/payment',recordPayLaterPayment);r.post('/paylater/:id/recovery',recordRecoveryAction);
