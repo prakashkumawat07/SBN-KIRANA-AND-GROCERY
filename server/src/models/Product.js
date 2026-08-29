@@ -29,6 +29,7 @@ const schema=new mongoose.Schema({
   stock:{type:Number,required:true,min:0,default:0},
   stockUnit:{type:String,enum:['qty','kg','g','ltr','ml','pack'],default:'qty'},
   lowStockThreshold:{type:Number,default:10,min:0},
+  customerBadge:{type:String,enum:['none','limited','selling_fast','popular','fresh','best_value'],default:'none'},
   image:{type:String,required:true,validate:{validator:v=>validImage(v,125000),message:'Invalid primary product image'}},
   images:{type:[productImageSchema],default:[],validate:{validator:v=>v.length<=5,message:'Maximum 5 product images are allowed'}},
   description:{type:String,default:'',trim:true,maxlength:2500},

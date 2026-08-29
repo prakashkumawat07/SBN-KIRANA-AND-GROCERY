@@ -1,21 +1,23 @@
+.mobile-home-shelves{display:none}
 @media(max-width:760px){
   .route-footer-other{display:none!important}.route-footer-home{display:block}.route-footer-home .mega-footer{padding-bottom:78px!important}
   .home-promo-shell{touch-action:pan-y;user-select:none}
 
-  /* Flipkart-style mobile product shelf: two visible rows, swipe sideways for more columns. */
-  .home-first-product-grid{display:grid!important;grid-template-rows:repeat(2,auto)!important;grid-template-columns:none!important;grid-auto-flow:column;grid-auto-columns:minmax(154px,42vw);overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch;gap:10px!important;padding:4px 2px 12px;margin-right:-10px;scrollbar-width:none;align-items:stretch}
-  .home-first-product-grid::-webkit-scrollbar,.home-marketing-showcase::-webkit-scrollbar,.rail-items::-webkit-scrollbar{display:none}
-  .home-first-product-grid>.product-card{width:auto!important;min-width:0!important;max-width:none!important;scroll-snap-align:start;scroll-snap-stop:normal;border-radius:14px!important;overflow:hidden}
-  .home-first-product-grid .product-image{height:118px!important}.home-first-product-grid .product-body{padding:9px!important}.home-first-product-grid .product-body h3{font-size:12px!important;min-height:30px;white-space:normal!important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.home-first-product-grid .category{font-size:7px!important}.home-first-product-grid .unit{font-size:9px!important}.home-first-product-grid .price-row strong{font-size:16px!important}.home-first-product-grid .product-buy-actions{margin-top:6px!important}.home-first-product-grid .add-cart-btn{min-height:36px!important;font-size:10px!important;padding:7px!important}
-  .home-first-product-grid::after{content:'Swipe for more →';display:flex;align-items:center;justify-content:center;grid-row:1/3;width:78px;min-height:100%;color:#177245;background:#eef8f1;border:1px dashed #b9dbc5;border-radius:14px;font-size:9px;font-weight:900;text-align:center;padding:8px;scroll-snap-align:end}
+  /* Desktop product grid stays untouched; mobile gets many independent swipe shelves. */
+  .desktop-home-products{display:none!important}.mobile-home-shelves{display:grid;gap:12px;margin:10px -10px 0;padding:0 0 4px;background:#f4f6f5}
+  .mobile-product-shelf{background:#fff;padding:13px 0 12px;border-top:1px solid #e8ece9;border-bottom:1px solid #e8ece9;overflow:hidden}
+  .mobile-shelf-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:0 12px 10px}.mobile-shelf-head>div{display:grid;gap:2px}.mobile-shelf-head small{font-size:7px;letter-spacing:1.2px;font-weight:900;color:#177245}.mobile-shelf-head h2{font-size:19px;line-height:1.05;margin:0;color:#17271e}.mobile-shelf-head>a{font-size:9px;font-weight:900;color:#0d67dc;white-space:nowrap}
+  .mobile-product-rail{display:flex;gap:9px;overflow-x:auto;overflow-y:hidden;padding:2px 12px 8px;scroll-snap-type:x mandatory;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}.mobile-product-rail::-webkit-scrollbar{display:none}
+  .mobile-product-rail>.product-card{flex:0 0 min(42vw,178px);min-width:145px;max-width:178px;scroll-snap-align:start;border-radius:13px!important;overflow:hidden;box-shadow:0 3px 12px rgba(20,55,35,.06)}
+  .mobile-product-rail .product-image{height:120px!important}.mobile-product-rail .product-body{padding:9px!important}.mobile-product-rail .product-body h3{font-size:11px!important;min-height:28px;white-space:normal!important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.mobile-product-rail .category{font-size:7px!important}.mobile-product-rail .unit{font-size:9px!important}.mobile-product-rail .price-row strong{font-size:16px!important}.mobile-product-rail .product-value-line{gap:4px;align-items:flex-start;flex-direction:column}.mobile-product-rail .stock-mini{font-size:7px!important;max-width:100%;white-space:normal}.mobile-product-rail .product-card-view{font-size:8px;padding-top:6px}
+  .mobile-shelf-more{flex:0 0 76px;min-height:210px;border:1px dashed #b9dbc5;border-radius:13px;background:#eef8f1;color:#177245;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;scroll-snap-align:end;font-size:9px}.mobile-shelf-more span{font-size:24px}
 
   .home-marketing-showcase{display:flex!important;grid-template-columns:none!important;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch;gap:10px!important;padding:0 10px 8px!important;margin:0 0 12px!important;scrollbar-width:none}
-  .home-marketing-showcase>.home-marketing-card{flex:0 0 82vw;max-width:360px;min-height:142px!important;scroll-snap-align:start;border-radius:16px!important;padding:17px!important}.home-marketing-card:last-child{grid-column:auto!important}.home-marketing-card h2{font-size:19px!important}.home-marketing-card>span{font-size:46px!important}
+  .home-marketing-showcase::-webkit-scrollbar,.rail-items::-webkit-scrollbar{display:none}.home-marketing-showcase>.home-marketing-card{flex:0 0 82vw;max-width:360px;min-height:142px!important;scroll-snap-align:start;border-radius:16px!important;padding:17px!important}.home-marketing-card:last-child{grid-column:auto!important}.home-marketing-card h2{font-size:19px!important}.home-marketing-card>span{font-size:46px!important}
   .rail-items{scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none}.rail-items>a{scroll-snap-align:start}
   .home-product-first{overflow:hidden}.home-promo-dots button{min-width:22px}.home-promo-arrow{width:34px;height:34px}
 }
 @media(max-width:420px){
-  .home-first-product-grid{grid-auto-columns:minmax(145px,45vw)}
-  .home-first-product-grid .product-image{height:112px!important}
+  .mobile-product-rail>.product-card{flex-basis:44vw;min-width:140px}.mobile-product-rail .product-image{height:112px!important}
   .home-marketing-showcase>.home-marketing-card{flex-basis:86vw}
 }
