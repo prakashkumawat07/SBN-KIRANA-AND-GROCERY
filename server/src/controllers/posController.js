@@ -8,7 +8,8 @@ const money=n=>Math.round((Number(n)||0)*100)/100;
 const clean=(v,max=160)=>String(v||'').trim().replace(/[<>\u0000-\u001F]/g,'').slice(0,max);
 const normalizedName=v=>clean(v,160).replace(/\s+/g,' ').toLowerCase();
 const escapeRegex=v=>String(v||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-const saleUnit=v=>['QTY','KG','PACK'].includes(String(v||'').toUpperCase())?String(v).toUpperCase():'QTY';
+const saleUnit=v=>['QTY','KG','PACK','LTR'].includes(String(v||'').toUpperCase())?String(v).toUpperCase():'QTY';
+const allowsDecimal=unit=>unit==='KG'||unit==='LTR';
 function fail(message,status=400){const e=new Error(message);e.status=status;throw e}
 
 export async function posCatalogSearch(req,res,next){
@@ -57,7 +58,7 @@ export async function createPosSale(req,res,next){
       if(!name)fail(`Item ${index+1}: enter item name`);
       if(!Number.isFinite(price)||price<=0||price>10000000)fail(`Item ${index+1}: enter a valid price`);
       if(!Number.isFinite(quantity)||quantity<=0||quantity>10000)fail(`Item ${index+1}: enter a valid quantity`);
-      if(unitType!=='KG'&&!Number.isInteger(quantity))fail(`Item ${index+1}: ${unitType} must be a whole number`);
+      if(!allowsDecimal(unitType)&&!Number.isInteger(quantity))fail(`Item ${index+1}: ${unitType} must be a whole number`);
       const productId=mongoose.isValidObjectId(row?.productId)?String(row.productId):'';
       return {name,price:money(price),quantity:Math.round(quantity*1000)/1000,saleUnit:unitType,productId,key:normalizedName(name)};
     });
