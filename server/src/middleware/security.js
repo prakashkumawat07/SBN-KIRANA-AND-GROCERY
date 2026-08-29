@@ -86,3 +86,9 @@ export function validatePassword(password){
   if(classes<3)return 'Password must use at least 3 of: lowercase, uppercase, number, special character';
   return '';
 }
+
+export function requireStrongPassword(req,res,next){
+  const error=validatePassword(req.body?.password);
+  if(error)return res.status(400).json({message:error});
+  next();
+}
