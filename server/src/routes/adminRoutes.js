@@ -1,6 +1,7 @@
 import {Router} from 'express';
 import {protect,adminOnly} from '../middleware/auth.js';
 import {requireStrongPassword} from '../middleware/security.js';
+import {auditAdminWrites} from '../middleware/adminAudit.js';
 import {
   dashboard,products,createProduct,updateProduct,deleteProduct,orders,updateOrderStatus,customers,messages,
   payLaterCustomers,updatePayLater,recordPayLaterPayment,recordRecoveryAction,stock,updateStock,reports,
@@ -12,10 +13,12 @@ import {adminReviews,moderateReview,deleteReview} from '../controllers/reviewCon
 import {adminBulkOrders,adminBulkOrderDetail,updateQuotation,updateBulkStatus,updateBulkPayment,updateBulkDelivery} from '../controllers/bulkOrderController.js';
 import {posSales,posSummary,createPosSale,updatePosPayment} from '../controllers/posController.js';
 import {adminPayLaterApplications,adminPayLaterApplication,adminVerifyPayLaterApplication,adminDecidePayLaterApplication} from '../controllers/payLaterKycController.js';
+import {adminAuditLogs} from '../controllers/adminSecurityController.js';
 
 const r=Router();
-r.use(protect,adminOnly);
+r.use(protect,adminOnly,auditAdminWrites);
 r.get('/dashboard',dashboard);
+r.get('/audit-logs',adminAuditLogs);
 r.get('/products',products);r.post('/products',createProduct);r.put('/products/:id',updateProduct);r.delete('/products/:id',deleteProduct);
 r.get('/orders',orders);r.patch('/orders/:id/status',updateOrderStatus);
 r.get('/pos',posSales);r.get('/pos/summary',posSummary);r.post('/pos',createPosSale);r.patch('/pos/:id/payment',updatePosPayment);
