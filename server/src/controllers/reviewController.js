@@ -11,16 +11,27 @@ export async function productReviews(req,res,next){
   }catch(e){next(e)}
 }
 
+export async function reviewEligibility(req,res,next){
+  try{
+    const product=await Product.findById(req.params.productId).select('_id name');
+    if(!product)return res.status(404).json({message:'Product not found'});
+    const delivered=Boolean(await Order.exists({user:req.user._id,'items.product':product._id,status:'Delivered'}));
+    const existing=await Review.findOne({product:product._id,user:req.user._id}).select('rating title comment approved').lean();
+    res.json({eligible:delivered,reason:delivered?'Delivered purchase verified':'You can rate and suggest improvements after this product is delivered in one of your orders.',existing:existing||null});
+  }catch(e){next(e)}
+}
+
 export async function upsertReview(req,res,next){
   try{
     const product=await Product.findById(req.params.productId);
     if(!product)return res.status(404).json({message:'Product not found'});
+    const delivered=Boolean(await Order.exists({user:req.user._id,'items.product':product._id,status:'Delivered'}));
+    if(!delivered)return res.status(403).json({message:'Rating and suggestions are available after a delivered purchase of this product.'});
     const rating=Number(req.body.rating);
     if(!Number.isFinite(rating)||rating<1||rating>5)return res.status(400).json({message:'Rating must be between 1 and 5'});
-    const verifiedPurchase=Boolean(await Order.exists({user:req.user._id,'items.product':product._id,status:{$ne:'Cancelled'}}));
     const review=await Review.findOneAndUpdate(
       {product:product._id,user:req.user._id},
-      {$set:{rating,title:String(req.body.title||'').trim().slice(0,100),comment:String(req.body.comment||'').trim().slice(0,1000),verifiedPurchase,approved:true}},
+      {$set:{rating,title:String(req.body.title||'').trim().slice(0,100),comment:String(req.body.comment||'').trim().slice(0,1000),verifiedPurchase:true,approved:true}},
       {new:true,upsert:true,runValidators:true,setDefaultsOnInsert:true}
     ).populate('user','name');
     res.status(201).json(review);
