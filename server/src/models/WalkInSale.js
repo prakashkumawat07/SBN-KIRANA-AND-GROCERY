@@ -1,9 +1,10 @@
 import mongoose from 'mongoose';
 
 const itemSchema=new mongoose.Schema({
-  product:{type:mongoose.Schema.Types.ObjectId,ref:'Product',required:true},
-  name:String,
-  unit:String,
+  product:{type:mongoose.Schema.Types.ObjectId,ref:'Product',default:null},
+  name:{type:String,required:true,trim:true},
+  unit:{type:String,default:''},
+  inventoryMatched:{type:Boolean,default:false},
   price:{type:Number,required:true,min:0},
   costPrice:{type:Number,default:0,min:0},
   quantity:{type:Number,required:true,min:1},
