@@ -4,10 +4,11 @@ const itemSchema=new mongoose.Schema({
   product:{type:mongoose.Schema.Types.ObjectId,ref:'Product',default:null},
   name:{type:String,required:true,trim:true},
   unit:{type:String,default:''},
+  saleUnit:{type:String,enum:['QTY','KG','PACK'],default:'QTY'},
   inventoryMatched:{type:Boolean,default:false},
   price:{type:Number,required:true,min:0},
   costPrice:{type:Number,default:0,min:0},
-  quantity:{type:Number,required:true,min:1},
+  quantity:{type:Number,required:true,min:0.001},
   amount:{type:Number,required:true,min:0}
 },{_id:true});
 

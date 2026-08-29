@@ -7,7 +7,24 @@ import CashEntry from '../models/CashEntry.js';
 const money=n=>Math.round((Number(n)||0)*100)/100;
 const clean=(v,max=160)=>String(v||'').trim().replace(/[<>\u0000-\u001F]/g,'').slice(0,max);
 const normalizedName=v=>clean(v,160).replace(/\s+/g,' ').toLowerCase();
+const escapeRegex=v=>String(v||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+const saleUnit=v=>['QTY','KG','PACK'].includes(String(v||'').toUpperCase())?String(v).toUpperCase():'QTY';
 function fail(message,status=400){const e=new Error(message);e.status=status;throw e}
+
+export async function posCatalogSearch(req,res,next){
+  try{
+    res.setHeader('Cache-Control','no-store, private');
+    const q=clean(req.query.q,60);
+    if(q.length<3)return res.json([]);
+    const rx=new RegExp(escapeRegex(q),'i');
+    const products=await Product.find({$or:[{name:rx},{brand:rx},{sku:rx},{barcode:rx}]})
+      .select('name brand sku price mrp unit stock stockUnit')
+      .sort({featured:-1,name:1})
+      .limit(8)
+      .lean();
+    res.json(products.map(p=>({_id:p._id,name:p.name,brand:p.brand||'',sku:p.sku||'',price:money(p.price),mrp:money(p.mrp),unit:p.unit||'',stock:Number(p.stock)||0,stockUnit:p.stockUnit||'qty'})));
+  }catch(e){next(e)}
+}
 
 export async function posSales(req,res,next){
   try{res.setHeader('Cache-Control','no-store, private');res.json(await WalkInSale.find().populate('createdBy','name email').sort({createdAt:-1}).limit(250))}catch(e){next(e)}
@@ -36,11 +53,13 @@ export async function createPosSale(req,res,next){
     if(!requested.length)fail('Add at least one item');
     if(requested.length>75)fail('Too many items in one POS bill');
     const normalized=requested.map((row,index)=>{
-      const name=clean(row?.name,160);const price=Number(row?.price);const quantity=Number(row?.quantity);
+      const name=clean(row?.name,160);const price=Number(row?.price);const quantity=Number(row?.quantity);const unitType=saleUnit(row?.saleUnit);
       if(!name)fail(`Item ${index+1}: enter item name`);
       if(!Number.isFinite(price)||price<=0||price>10000000)fail(`Item ${index+1}: enter a valid price`);
-      if(!Number.isInteger(quantity)||quantity<1||quantity>200)fail(`Item ${index+1}: quantity must be 1 to 200`);
-      return {name,price:money(price),quantity,key:normalizedName(name)};
+      if(!Number.isFinite(quantity)||quantity<=0||quantity>10000)fail(`Item ${index+1}: enter a valid quantity`);
+      if(unitType!=='KG'&&!Number.isInteger(quantity))fail(`Item ${index+1}: ${unitType} must be a whole number`);
+      const productId=mongoose.isValidObjectId(row?.productId)?String(row.productId):'';
+      return {name,price:money(price),quantity:Math.round(quantity*1000)/1000,saleUnit:unitType,productId,key:normalizedName(name)};
     });
     const discountInput=Math.max(Number(req.body.discount)||0,0);const tax=Math.max(Number(req.body.tax)||0,0);
     const paymentMethod=['CASH','UPI','CARD','ONLINE'].includes(req.body.paymentMethod)?req.body.paymentMethod:'CASH';
@@ -48,19 +67,20 @@ export async function createPosSale(req,res,next){
     session=await mongoose.startSession();let created;
 
     await session.withTransaction(async()=>{
-      const catalog=await Product.find().select('name unit stock costPrice').session(session);
-      const productByName=new Map();
-      for(const p of catalog){const key=normalizedName(p.name);if(key&&!productByName.has(key))productByName.set(key,p)}
+      const catalog=await Product.find().select('_id name unit stock stockUnit costPrice price').session(session);
+      const productByName=new Map();const productById=new Map();
+      for(const p of catalog){const key=normalizedName(p.name);if(key&&!productByName.has(key))productByName.set(key,p);productById.set(String(p._id),p)}
+      const productFor=row=>row.productId?productById.get(row.productId):productByName.get(row.key);
       const matchedTotals=new Map();
-      for(const row of normalized){const p=productByName.get(row.key);if(p)matchedTotals.set(String(p._id),(matchedTotals.get(String(p._id))||0)+row.quantity)}
+      for(const row of normalized){const p=productFor(row);if(p)matchedTotals.set(String(p._id),(matchedTotals.get(String(p._id))||0)+row.quantity)}
       for(const [id,quantity] of matchedTotals){
-        const p=catalog.find(x=>String(x._id)===id);
+        const p=productById.get(id);
         const stock=await Product.updateOne({_id:id,stock:{$gte:quantity}},{$inc:{stock:-quantity}},{session});
         if(stock.modifiedCount!==1)fail(`Not enough stock for ${p?.name||'matched inventory item'}`,409);
       }
       const items=normalized.map(row=>{
-        const p=productByName.get(row.key);const matched=Boolean(p);
-        return {product:p?._id||null,name:row.name,unit:p?.unit||'',inventoryMatched:matched,price:row.price,costPrice:matched?money(p.costPrice):row.price,quantity:row.quantity,amount:money(row.price*row.quantity)};
+        const p=productFor(row);const matched=Boolean(p);
+        return {product:p?._id||null,name:row.name,unit:p?.unit||'',saleUnit:row.saleUnit,inventoryMatched:matched,price:row.price,costPrice:matched?money(p.costPrice):row.price,quantity:row.quantity,amount:money(row.price*row.quantity)};
       });
       const subtotal=money(items.reduce((s,i)=>s+i.amount,0));const discount=Math.min(discountInput,subtotal);const total=money(subtotal-discount+tax);
       const billNo=`SBN-POS-${Date.now().toString().slice(-8)}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
