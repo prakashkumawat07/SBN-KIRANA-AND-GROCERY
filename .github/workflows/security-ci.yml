@@ -1,0 +1,44 @@
+name: Security CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '30 2 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  audit-and-build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [client, admin, server]
+    defaults:
+      run:
+        working-directory: ${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ${{ matrix.app }}/package.json
+      - name: Install dependencies
+        run: npm install --no-fund --no-audit
+      - name: Audit high severity vulnerabilities
+        run: npm audit --audit-level=high
+      - name: Build frontend
+        if: matrix.app != 'server'
+        run: npm run build
+      - name: Syntax check server entrypoints
+        if: matrix.app == 'server'
+        run: |
+          node --check src/app.js
+          node --check api/index.js
+          node --check src/controllers/authController.js
+          node --check src/controllers/payLaterKycController.js
