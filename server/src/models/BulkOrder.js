@@ -79,4 +79,7 @@ const schema=new mongoose.Schema({
   adminNote:{type:String,default:''}
 },{timestamps:true});
 
-export default mongoose.model('BulkOrder',schema);
+// Use a dedicated model cache key while explicitly keeping the existing
+// MongoDB collection name. This avoids any stale compiled `BulkOrder` schema
+// from older serverless instances without requiring a data migration.
+export default mongoose.models.BulkOrderV2||mongoose.model('BulkOrderV2',schema,'bulkorders');
