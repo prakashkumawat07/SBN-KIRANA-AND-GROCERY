@@ -11,15 +11,25 @@ import marketingRoutes from './routes/marketingRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import {notFound,errorHandler} from './middleware/error.js';
+import {securityHeaders,rejectDangerousInput,requireJsonForWrites} from './middleware/security.js';
 
 const app=express();
+app.disable('x-powered-by');
+app.set('trust proxy',1);
+
 const allowed=['http://localhost:5173','http://localhost:5174','https://sbn-kirana-store.vercel.app','https://sbn-kirana-admin.vercel.app',process.env.CLIENT_URL,process.env.ADMIN_URL].filter(Boolean);
-function isAllowedOrigin(origin){if(!origin)return true;if(allowed.includes(origin))return true;return /^https:\/\/sbn-kirana-(store|admin)-.+\.vercel\.app$/.test(origin)}
-app.use(cors({origin:(origin,cb)=>isAllowedOrigin(origin)?cb(null,true):cb(new Error('Origin not allowed')),methods:['GET','POST','PUT','PATCH','DELETE','OPTIONS'],allowedHeaders:['Content-Type','Authorization'],optionsSuccessStatus:204}));
-app.options(/.*/,cors());
-app.use(express.json({limit:'4mb'}));
-app.use(morgan('dev'));
-const health=(req,res)=>res.json({status:'ok',service:'SBN Kirana API',features:['paylater','inventory','reports','workers','cash','marketing','coupons','reviews','referrals','bulk-orders','quotations']});
+const ownedPreview=/^https:\/\/sbn-kirana-(store|admin)-[a-z0-9-]+-prakashkumawat12245-2350s-projects\.vercel\.app$/i;
+function isAllowedOrigin(origin){if(!origin)return true;if(allowed.includes(origin))return true;return ownedPreview.test(origin)}
+const corsOptions={origin:(origin,cb)=>isAllowedOrigin(origin)?cb(null,true):cb(Object.assign(new Error('Origin not allowed'),{status:403})),methods:['GET','POST','PUT','PATCH','DELETE','OPTIONS'],allowedHeaders:['Content-Type','Authorization'],maxAge:600,optionsSuccessStatus:204};
+app.use(cors(corsOptions));
+app.options(/.*/,cors(corsOptions));
+app.use(securityHeaders);
+app.use(express.json({limit:'3mb',strict:true,type:'application/json'}));
+app.use(requireJsonForWrites);
+app.use(rejectDangerousInput);
+if(process.env.NODE_ENV!=='production')app.use(morgan('dev'));
+
+const health=(req,res)=>res.json({status:'ok',service:'SBN Kirana API',features:['paylater','inventory','reports','workers','cash','marketing','coupons','reviews','referrals','bulk-orders','quotations','pos','kyc']});
 app.get('/api/health',health);app.use('/api/auth',authRoutes);app.use('/api/products',productRoutes);app.use('/api/orders',orderRoutes);app.use('/api/bulk-orders',bulkOrderRoutes);app.use('/api/contact',contactRoutes);app.use('/api/paylater',payLaterRoutes);app.use('/api/offers',marketingRoutes);app.use('/api/reviews',reviewRoutes);app.use('/api/admin',adminRoutes);
 app.get('/service/health',health);app.use('/service/auth',authRoutes);app.use('/service/products',productRoutes);app.use('/service/orders',orderRoutes);app.use('/service/bulk-orders',bulkOrderRoutes);app.use('/service/contact',contactRoutes);app.use('/service/paylater',payLaterRoutes);app.use('/service/offers',marketingRoutes);app.use('/service/reviews',reviewRoutes);app.use('/service/admin',adminRoutes);
 app.use(notFound);app.use(errorHandler);export default app;
