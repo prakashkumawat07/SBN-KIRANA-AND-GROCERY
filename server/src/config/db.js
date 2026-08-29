@@ -1,7 +1,9 @@
 import mongoose from 'mongoose';
 
 mongoose.set('strictQuery',true);
-mongoose.set('sanitizeFilter',true);
+// Request payload/query keys containing $, dots or prototype keys are rejected in security middleware.
+// Keep Mongoose sanitizeFilter off so trusted server-side operators like $in/$ne/$gte work correctly.
+mongoose.set('sanitizeFilter',false);
 
 let connectionPromise;
 
