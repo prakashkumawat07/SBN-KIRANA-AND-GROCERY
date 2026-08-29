@@ -4,6 +4,7 @@ import './recovery-policy.css';
 import './growth.css';
 import './bulk-orders.css';
 import './conversion.css';
+import './product-first-home.css';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
