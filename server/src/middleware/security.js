@@ -71,6 +71,20 @@ export async function clearLoginPair(req){
   try{await SecurityRateLimit.deleteOne({key:keyFor('login-pair',`${ipOf(req)}|${cleanEmail(req.body?.email)}`)})}catch{}
 }
 
+export async function checkTwoFactorThrottle(req,res,next){
+  try{
+    const doc=await getLimit(keyFor('admin-2fa-ip',ipOf(req)));
+    if(isBlocked(doc))return res.status(429).json({message:'Too many verification attempts. Please wait and try again.'});
+    next();
+  }catch{next()}
+}
+export async function recordTwoFactorFailure(req){
+  try{await bump(keyFor('admin-2fa-ip',ipOf(req)),{windowMs:10*60*1000,max:10,blockMs:15*60*1000})}catch{}
+}
+export async function clearTwoFactorThrottle(req){
+  try{await SecurityRateLimit.deleteOne({key:keyFor('admin-2fa-ip',ipOf(req))})}catch{}
+}
+
 export async function registrationThrottle(req,res,next){
   try{
     const doc=await bump(keyFor('register-ip',ipOf(req)),{windowMs:60*60*1000,max:6,blockMs:60*60*1000});
