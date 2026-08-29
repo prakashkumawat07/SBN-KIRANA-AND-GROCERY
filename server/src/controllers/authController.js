@@ -1,16 +1,18 @@
-import crypto from 'crypto';
-import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import AdminLoginEvent from '../models/AdminLoginEvent.js';
 import {validatePassword,recordLoginFailure,clearLoginPair} from '../middleware/security.js';
+import {signSessionToken,signTwoFactorChallenge} from '../utils/authToken.js';
+import {ipOf,userAgentOf} from '../utils/adminSecurity.js';
 
-const issuer='sbn-kirana-api';const audience='sbn-kirana-web';
-function jwtSecret(){const v=process.env.JWT_SECRET||'';if(!v)throw new Error('JWT secret is not configured');return v}
-const token=id=>jwt.sign({id,jti:crypto.randomUUID()},jwtSecret(),{expiresIn:'24h',algorithm:'HS256',issuer,audience});
-const safe=u=>({id:u._id,name:u.name,email:u.email,phone:u.phone,role:u.role,isActive:u.isActive,payLater:u.payLater,referralCode:u.referralCode,referralCount:u.referralCount||0});
+const safe=u=>({id:u._id,name:u.name,email:u.email,phone:u.phone,role:u.role,isActive:u.isActive,twoFactorEnabled:Boolean(u.twoFactor?.enabled),payLater:u.payLater,referralCode:u.referralCode,referralCount:u.referralCount||0});
 const referralFor=u=>`SBN${String(u._id).slice(-6).toUpperCase()}`;
 const emailOf=v=>String(v||'').trim().toLowerCase();
 const cleanText=(v,max)=>String(v||'').trim().replace(/[<>\u0000-\u001F]/g,'').slice(0,max);
 async function ensureReferral(user){if(!user.referralCode){user.referralCode=referralFor(user);await user.save()}return user}
+async function logAdminLogin(req,user,outcome){
+  if(user?.role!=='admin')return;
+  try{await AdminLoginEvent.create({admin:user._id,email:user.email,outcome,ip:ipOf(req),userAgent:userAgentOf(req)})}catch{}
+}
 
 export async function register(req,res,next){
   try{
@@ -23,7 +25,7 @@ export async function register(req,res,next){
     const user=await User.create({name,email,phone,password,referredBy:referrer?._id||null});
     user.referralCode=referralFor(user);await user.save();
     if(referrer)await User.updateOne({_id:referrer._id},{$inc:{referralCount:1}});
-    res.status(201).json({user:safe(user),token:token(user._id)});
+    res.status(201).json({user:safe(user),token:signSessionToken(user)});
   }catch(e){next(e)}
 }
 
@@ -32,11 +34,17 @@ export async function login(req,res,next){
     const email=emailOf(req.body.email),password=String(req.body.password||'');
     if(!email||!password)return res.status(401).json({message:'Invalid email or password'});
     let user=await User.findOne({email}).select('+password');
-    if(!user||!(await user.comparePassword(password))){await recordLoginFailure(req);return res.status(401).json({message:'Invalid email or password'})}
-    if(user.isActive===false)return res.status(403).json({message:'Account is disabled'});
+    if(!user){await recordLoginFailure(req);return res.status(401).json({message:'Invalid email or password'})}
+    if(!(await user.comparePassword(password))){await recordLoginFailure(req);await logAdminLogin(req,user,'password_failed');return res.status(401).json({message:'Invalid email or password'})}
+    if(user.isActive===false){await logAdminLogin(req,user,'account_disabled');return res.status(403).json({message:'Account is disabled'})}
     await clearLoginPair(req);
     user=await ensureReferral(user);
-    res.json({user:safe(user),token:token(user._id)});
+    if(user.role==='admin'&&user.twoFactor?.enabled){
+      await logAdminLogin(req,user,'two_factor_required');
+      return res.json({requiresTwoFactor:true,challengeToken:signTwoFactorChallenge(user),admin:{name:user.name,email:user.email}});
+    }
+    await logAdminLogin(req,user,'success');
+    res.json({user:safe(user),token:signSessionToken(user)});
   }catch(e){next(e)}
 }
 
