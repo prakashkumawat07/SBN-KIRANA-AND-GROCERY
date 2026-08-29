@@ -20,8 +20,8 @@ export async function submitPayLaterApplication(req,res,next){
     if(requestedLimit<=0)return res.status(400).json({message:'Enter a valid requested limit'});
     const proof=req.body.proof||{};
     if(!allowedProofs.includes(proof.type))return res.status(400).json({message:'Choose Aadhaar, Voter ID or PAN'});
-    const last4=clean(proof.last4).replace(/\D/g,'').slice(-4);
-    if(last4.length!==4)return res.status(400).json({message:'Enter only the last 4 digits of the ID'});
+    const last4=clean(proof.last4).replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(-4);
+    if(last4.length!==4)return res.status(400).json({message:'Enter only the last 4 characters of the ID'});
     if(!allowedMime.includes(proof.mimeType))return res.status(400).json({message:'Upload a masked JPG, PNG or PDF proof'});
     const size=Math.max(Number(proof.size)||0,0);
     if(size<=0||size>900000)return res.status(400).json({message:'Masked ID proof must be under 900 KB'});
@@ -53,7 +53,7 @@ export async function adminPayLaterApplications(req,res,next){
 
 export async function adminPayLaterApplication(req,res,next){
   try{
-    const app=await PayLaterApplication.findOne({user:req.params.id}).populate('user','name email phone payLater').populate('reviewedBy','name email').lean();
+    const app=await PayLaterApplication.findOne({user:req.params.id}).select('+proof.data').populate('user','name email phone payLater').populate('reviewedBy','name email').lean();
     if(!app)return res.status(404).json({message:'PayLater KYC application not found'});
     res.json(app);
   }catch(e){next(e)}
