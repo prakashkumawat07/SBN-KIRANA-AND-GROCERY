@@ -1,4 +1,5 @@
-import {Routes,Route} from 'react-router-dom';
+import {useEffect} from 'react';
+import {Routes,Route,useLocation} from 'react-router-dom';
 import './marketplace.css';
 import './recovery-policy.css';
 import './growth.css';
@@ -7,6 +8,7 @@ import './conversion.css';
 import './product-first-home.css';
 import './review-notifications.css';
 import './mobile-marketplace.css';
+import './mobile-home-polish.css';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -29,7 +31,28 @@ import Register from './pages/Register';
 import PayLater from './pages/PayLater';
 import InfoPage from './pages/InfoPage';
 
-export default function App(){return <><Navbar/><Routes>
+function RouteAwareFooter(){
+  const {pathname}=useLocation();
+  return <div className={pathname==='/'?'route-footer route-footer-home':'route-footer route-footer-other'}><Footer/></div>;
+}
+
+function MobileHomeSwipe(){
+  const {pathname}=useLocation();
+  useEffect(()=>{
+    if(pathname!=='/')return;
+    const shell=document.querySelector('.home-promo-shell');
+    if(!shell)return;
+    let startX=0,startY=0;
+    const onStart=e=>{const t=e.touches?.[0];if(t){startX=t.clientX;startY=t.clientY}};
+    const onEnd=e=>{const t=e.changedTouches?.[0];if(!t)return;const dx=t.clientX-startX,dy=t.clientY-startY;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.2){shell.querySelector(dx<0?'.home-promo-arrow.next':'.home-promo-arrow.prev')?.click()}};
+    shell.addEventListener('touchstart',onStart,{passive:true});
+    shell.addEventListener('touchend',onEnd,{passive:true});
+    return()=>{shell.removeEventListener('touchstart',onStart);shell.removeEventListener('touchend',onEnd)};
+  },[pathname]);
+  return null;
+}
+
+export default function App(){return <><Navbar/><MobileHomeSwipe/><Routes>
   <Route path="/" element={<Home/>}/>
   <Route path="/products" element={<Products/>}/>
   <Route path="/deals" element={<Deals/>}/>
@@ -45,4 +68,4 @@ export default function App(){return <><Navbar/><Routes>
   <Route path="/info/:slug" element={<InfoPage/>}/>
   <Route path="/login" element={<Login/>}/>
   <Route path="/register" element={<Register/>}/>
-</Routes><Footer/><MobileBottomNav/></>}
+</Routes><RouteAwareFooter/><MobileBottomNav/></>}
