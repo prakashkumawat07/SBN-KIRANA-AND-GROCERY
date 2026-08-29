@@ -95,7 +95,7 @@ export async function updatePayLater(req,res,next){
     if(limit<(user.payLater.used||0))return res.status(400).json({message:'Limit cannot be lower than current outstanding amount'});
     user.payLater.status=status;
     user.payLater.limit=limit;
-    user.payLater.note=String(req.body.note??user.payLater.note||'').replace(/[<>\u0000-\u001F]/g,'').slice(0,1500);
+    user.payLater.note=String(req.body.note ?? user.payLater.note ?? '').replace(/[<>\u0000-\u001F]/g,'').slice(0,1500);
     user.payLater.updatedAt=new Date();
     if(status==='approved'&&['suspended','banned','blocked'].includes(previousStatus))user.payLater.recoveryStatus='current';
     await user.save();
