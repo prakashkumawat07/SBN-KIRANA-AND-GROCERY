@@ -22,3 +22,8 @@ export function adminOnly(req,res,next){
   if(req.user?.role!=='admin')return res.status(403).json({message:'Admin access required'});
   next();
 }
+
+export function posOnly(req,res,next){
+  if(req.user?.role!=='pos')return res.status(403).json({message:'POS staff access required'});
+  next();
+}
