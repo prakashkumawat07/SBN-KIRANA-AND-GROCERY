@@ -13,12 +13,40 @@ const MARKETING_BADGES={
   selling_fast:{icon:'🔥',label:'Selling fast',detail:'Trending with customers'},
   popular:{icon:'★',label:'Popular choice',detail:'Frequently chosen essential'},
   fresh:{icon:'✨',label:'Fresh arrival',detail:'Recently added to the store'},
-  best_value:{icon:'₹',label:'Best value',detail:'Strong everyday value'}
+  best_value:{icon:'₹',label:'Best value',detail:'Strong everyday value'},
+  hot_deal:{icon:'⚡',label:'Hot deal',detail:'Special value right now'},
+  trending:{icon:'↗',label:'Trending now',detail:'Getting more customer attention'},
+  today_pick:{icon:'✓',label:"Today's pick",detail:'Recommended for your basket'}
 };
+function unsplashVariant(src,params){
+  try{
+    const url=new URL(src);
+    if(!url.hostname.includes('images.unsplash.com'))return src;
+    Object.entries(params).forEach(([key,value])=>url.searchParams.set(key,String(value)));
+    return url.toString();
+  }catch{return src}
+}
+function expandLegacyImage(row,product){
+  const base={...row,thumbnail:row.thumbnail||row.src};
+  if(/images\.unsplash\.com/i.test(row.src)){
+    const common={auto:'format',q:88};
+    return [
+      {...base,src:unsplashVariant(row.src,{...common,fit:'max',w:1400}),alt:`${product.name} full product view`,view:'full'},
+      {...base,src:unsplashVariant(row.src,{...common,fit:'crop',w:1200,h:900,crop:'center'}),alt:`${product.name} alternate product view`,view:'full'},
+      {...base,src:unsplashVariant(row.src,{...common,fit:'crop',w:1200,h:900,crop:'entropy'}),alt:`${product.name} detailed product view`,view:'full'}
+    ];
+  }
+  return [
+    {...base,alt:`${product.name} full product view`,view:'full'},
+    {...base,alt:`${product.name} alternate product view`,view:'full'},
+    {...base,alt:`${product.name} product preview`,view:'full'}
+  ];
+}
 const normalizeImages=product=>{
   const list=Array.isArray(product?.images)?product.images:[];
-  const rows=list.map((img,index)=>typeof img==='string'?{src:img,thumbnail:img,alt:`${product.name} image ${index+1}`}:{src:img?.src,thumbnail:img?.thumbnail||img?.src,alt:img?.alt||`${product.name} image ${index+1}`}).filter(x=>x.src);
-  return rows.length?rows:(product?.image?[{src:product.image,thumbnail:product.image,alt:product.name}]:[]);
+  const rows=list.map((img,index)=>typeof img==='string'?{src:img,thumbnail:img,alt:`${product.name} image ${index+1}`,view:'full'}:{src:img?.src,thumbnail:img?.thumbnail||img?.src,alt:img?.alt||`${product.name} image ${index+1}`,view:'full'}).filter(x=>x.src);
+  const baseRows=rows.length?rows:(product?.image?[{src:product.image,thumbnail:product.image,alt:product.name,view:'full'}]:[]);
+  return baseRows.length===1?expandLegacyImage(baseRows[0],product):baseRows;
 };
 
 export default function ProductDetail(){
@@ -36,7 +64,7 @@ export default function ProductDetail(){
   if(error)return <main className="section"><div className="alert">{error}</div></main>;
   if(!product)return <main className="section"><div className="loading">Loading product...</div></main>;
 
-  const gallery=normalizeImages(product);const active=gallery[Math.min(activeImage,gallery.length-1)]||{src:product.image,thumbnail:product.image,alt:product.name};
+  const gallery=normalizeImages(product);const active=gallery[Math.min(activeImage,gallery.length-1)]||{src:product.image,thumbnail:product.image,alt:product.name,view:'full'};
   const save=Math.max((product.mrp||0)-(product.price||0),0);const canReview=Boolean(user&&eligibility?.eligible);const hasPublicReviews=Number(reviews.count)>0;const existing=eligibility?.existing;const marketing=MARKETING_BADGES[product.customerBadge]||null;
   function moveImage(direction){if(gallery.length<2)return;setActiveImage(i=>(i+direction+gallery.length)%gallery.length)}
   function touchEnd(e){if(touchStart===null)return;const end=e.changedTouches?.[0]?.clientX??touchStart;const delta=end-touchStart;if(Math.abs(delta)>45)moveImage(delta<0?1:-1);setTouchStart(null)}
@@ -44,13 +72,13 @@ export default function ProductDetail(){
   return <main className="product-detail-page">
     <div className="product-breadcrumb"><Link to="/">Home</Link> / <Link to="/products">Products</Link> / <span>{product.name}</span></div>
     <section className="product-detail-card">
-      <div className="product-gallery">
-        {gallery.length>1&&<div className="product-gallery-thumbs">{gallery.map((img,index)=><button type="button" key={`${img.src.slice(0,30)}-${index}`} className={index===activeImage?'active':''} onClick={()=>setActiveImage(index)} aria-label={`View image ${index+1}`}><img src={img.thumbnail||img.src} alt=""/></button>)}</div>}
+      <div className={`product-gallery ${gallery.length>1?'has-gallery':'single-image'}`}>
+        {gallery.length>1&&<div className="product-gallery-thumbs">{gallery.map((img,index)=><button type="button" key={`${img.src.slice(0,40)}-${index}`} className={index===activeImage?'active':''} onClick={()=>setActiveImage(index)} aria-label={`View image ${index+1}`}><img src={img.thumbnail||img.src} alt=""/><span>{index+1}</span></button>)}</div>}
         <div className="product-gallery-stage" onTouchStart={e=>setTouchStart(e.touches?.[0]?.clientX??null)} onTouchEnd={touchEnd}>
-          <button type="button" className="gallery-main-image" onClick={()=>setZoomOpen(true)} aria-label="Open product image"><img src={active.src} alt={active.alt||product.name}/></button>
+          <button type="button" className="gallery-main-image" onClick={()=>setZoomOpen(true)} aria-label="Open product image"><img className={`gallery-view-${active.view||'full'}`} src={active.src} alt={active.alt||product.name}/></button>
           {product.discount>0&&<span className="gallery-discount">{product.discount}% OFF</span>}
           {gallery.length>1&&<><button type="button" className="gallery-arrow prev" onClick={()=>moveImage(-1)} aria-label="Previous image">‹</button><button type="button" className="gallery-arrow next" onClick={()=>moveImage(1)} aria-label="Next image">›</button><div className="gallery-counter">{activeImage+1} / {gallery.length}</div></>}
-          <small className="gallery-zoom-hint">Click image to zoom{gallery.length>1?' · swipe or use arrows':''}</small>
+          <small className="gallery-zoom-hint">Tap image to zoom{gallery.length>1?' · swipe or use arrows':''}</small>
         </div>
       </div>
       <div className="product-detail-copy"><span className="product-detail-category">{product.category}</span><h1>{product.name}</h1>{product.brand&&<div className="product-brand-line">Brand: <b>{product.brand}</b></div>}{hasPublicReviews&&<div className="product-rating-summary"><b>{stars(reviews.average)}</b><span>{reviews.average} · {reviews.count} review{reviews.count===1?'':'s'}</span></div>}<p className="product-detail-unit">Pack / unit: {product.unit}</p><div className="detail-price"><strong>₹{product.price}</strong>{product.mrp>product.price&&<del>₹{product.mrp}</del>}</div>{save>0&&<div className="detail-saving">You save ₹{save}</div>}<p className="detail-description">{product.description||'Quality grocery and daily essential from SBN Kirana. Current selling price and ordering options are shown clearly before checkout.'}</p>{marketing&&product.stock>0&&<div className="detail-stock marketing">{marketing.icon} <b>{marketing.label}</b> · {marketing.detail}</div>}<div className="product-detail-facts"><div><small>CATEGORY</small><b>{product.category}</b></div><div><small>PACK</small><b>{product.unit||'—'}</b></div><div><small>SHOPPING</small><b>{marketing?.label||'Easy ordering'}</b></div><div><small>SAVING</small><b>{save?`₹${save}`:'Everyday value'}</b></div></div>{(product.sku||product.tags?.length>0)&&<div className="product-extra-info">{product.sku&&<span><small>SKU</small><b>{product.sku}</b></span>}{product.tags?.length>0&&<span className="product-tags"><small>SEARCH / PRODUCT TAGS</small><b>{product.tags.join(' · ')}</b></span>}</div>}<div className={`detail-stock ${product.stock?'in':'out'}`}>{product.stock?'✓ Available for ordering':'Currently unavailable'}</div><div className="detail-actions"><button className="detail-add" disabled={!product.stock} onClick={()=>addToCart(product)}>＋ Add to Cart</button><button className="detail-buy-now" disabled={!product.stock} onClick={buyNow}>Buy Now</button><button className={saved?'detail-save saved':'detail-save'} onClick={toggleSave}>{saved?'♥ Saved':'♡ Save'}</button><button className="detail-share" onClick={share}>↗ Share</button></div><div className="detail-trust"><span>🚚 Local fulfilment</span><span>↩ Support for eligible issues</span><span>🔒 Secure account checkout</span></div></div>
