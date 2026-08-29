@@ -14,6 +14,7 @@ import {adminBulkOrders,adminBulkOrderDetail,updateQuotation,updateBulkStatus,up
 import {posSales,posSummary,createPosSale,updatePosPayment} from '../controllers/posController.js';
 import {adminPayLaterApplications,adminPayLaterApplication,adminVerifyPayLaterApplication,adminDecidePayLaterApplication} from '../controllers/payLaterKycController.js';
 import {adminAuditLogs} from '../controllers/adminSecurityController.js';
+import {posUsers,createPosUser,updatePosUser,resetPosPassword,signOutPosUser} from '../controllers/posStaffController.js';
 
 const r=Router();
 r.use(protect,adminOnly,auditAdminWrites);
@@ -22,6 +23,7 @@ r.get('/audit-logs',adminAuditLogs);
 r.get('/products',products);r.post('/products',createProduct);r.put('/products/:id',updateProduct);r.delete('/products/:id',deleteProduct);
 r.get('/orders',orders);r.patch('/orders/:id/status',updateOrderStatus);
 r.get('/pos',posSales);r.get('/pos/summary',posSummary);r.post('/pos',createPosSale);r.patch('/pos/:id/payment',updatePosPayment);
+r.get('/pos-users',posUsers);r.post('/pos-users',createPosUser);r.patch('/pos-users/:id',updatePosUser);r.post('/pos-users/:id/password',requireStrongPassword,resetPosPassword);r.post('/pos-users/:id/signout',signOutPosUser);
 r.get('/bulk-orders',adminBulkOrders);r.get('/bulk-orders/:id',adminBulkOrderDetail);r.patch('/bulk-orders/:id/quotation',updateQuotation);r.patch('/bulk-orders/:id/status',updateBulkStatus);r.patch('/bulk-orders/:id/payment',updateBulkPayment);r.patch('/bulk-orders/:id/delivery',updateBulkDelivery);
 r.get('/customers',customers);r.get('/messages',messages);
 r.get('/paylater',payLaterCustomers);r.get('/paylater-applications',adminPayLaterApplications);r.get('/paylater/:id/application',adminPayLaterApplication);r.patch('/paylater/:id/application',adminVerifyPayLaterApplication);r.post('/paylater/:id/decision',adminDecidePayLaterApplication);r.patch('/paylater/:id',updatePayLater);r.post('/paylater/:id/payment',recordPayLaterPayment);r.post('/paylater/:id/recovery',recordRecoveryAction);
