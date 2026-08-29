@@ -26,7 +26,7 @@ export default function Navbar(){
   function signOut(){setAccountOpen(false);logout();nav('/')}
   const closeAccount=()=>setAccountOpen(false);
   return <>
-    <div className="offer-strip"><span>⚡ Quick local fulfilment</span><span>🏷️ Store offers available at checkout</span><span>🚚 Free delivery above ₹499</span></div>
+    <div className="offer-strip"><span>⚡ Quick local fulfilment</span><span>🏷️ Store offers available at checkout</span></div>
     <header className="market-header">
       <Link className="market-logo" to="/"><img src="/sbn-kirana-logo.svg" alt="SBN Kirana"/></Link>
       <div className="delivery-location"><span>📍</span><div><small>Deliver to</small><b>Your neighbourhood</b></div></div>
