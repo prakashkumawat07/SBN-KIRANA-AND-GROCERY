@@ -6,7 +6,9 @@ const proofSchema=new mongoose.Schema({
   fileName:{type:String,default:''},
   mimeType:{type:String,default:''},
   size:{type:Number,default:0},
-  data:{type:String,default:'',select:false}
+  encryptedData:{type:String,default:'',select:false},
+  iv:{type:String,default:'',select:false},
+  authTag:{type:String,default:'',select:false}
 },{_id:false});
 
 const addressSchema=new mongoose.Schema({
@@ -22,9 +24,9 @@ const addressSchema=new mongoose.Schema({
 
 const schema=new mongoose.Schema({
   user:{type:mongoose.Schema.Types.ObjectId,ref:'User',required:true,unique:true,index:true},
-  requestedLimit:{type:Number,required:true,min:1},
-  phone:{type:String,required:true,trim:true},
-  email:{type:String,required:true,trim:true,lowercase:true},
+  requestedLimit:{type:Number,required:true,min:1,max:100000},
+  phone:{type:String,required:true,trim:true,maxlength:20},
+  email:{type:String,required:true,trim:true,lowercase:true,maxlength:160},
   address:{type:addressSchema,required:true},
   proof:{type:proofSchema,required:true},
   consent:{type:Boolean,required:true},
@@ -32,7 +34,7 @@ const schema=new mongoose.Schema({
   idVerified:{type:Boolean,default:false},
   addressVerified:{type:Boolean,default:false},
   phoneVerified:{type:Boolean,default:false},
-  verificationNote:{type:String,default:''},
+  verificationNote:{type:String,default:'',maxlength:1500},
   reviewedBy:{type:mongoose.Schema.Types.ObjectId,ref:'User'},
   reviewedAt:Date
 },{timestamps:true});
