@@ -4,6 +4,7 @@ import morgan from 'morgan';
 import authRoutes from './routes/authRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
+import bulkOrderRoutes from './routes/bulkOrderRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
 import payLaterRoutes from './routes/payLaterRoutes.js';
 import marketingRoutes from './routes/marketingRoutes.js';
@@ -16,9 +17,9 @@ const allowed=['http://localhost:5173','http://localhost:5174','https://sbn-kira
 function isAllowedOrigin(origin){if(!origin)return true;if(allowed.includes(origin))return true;return /^https:\/\/sbn-kirana-(store|admin)-.+\.vercel\.app$/.test(origin)}
 app.use(cors({origin:(origin,cb)=>isAllowedOrigin(origin)?cb(null,true):cb(new Error('Origin not allowed')),methods:['GET','POST','PUT','PATCH','DELETE','OPTIONS'],allowedHeaders:['Content-Type','Authorization'],optionsSuccessStatus:204}));
 app.options(/.*/,cors());
-app.use(express.json({limit:'1mb'}));
+app.use(express.json({limit:'4mb'}));
 app.use(morgan('dev'));
-const health=(req,res)=>res.json({status:'ok',service:'SBN Kirana API',features:['paylater','inventory','reports','workers','cash','marketing','coupons','reviews','referrals']});
-app.get('/api/health',health);app.use('/api/auth',authRoutes);app.use('/api/products',productRoutes);app.use('/api/orders',orderRoutes);app.use('/api/contact',contactRoutes);app.use('/api/paylater',payLaterRoutes);app.use('/api/offers',marketingRoutes);app.use('/api/reviews',reviewRoutes);app.use('/api/admin',adminRoutes);
-app.get('/service/health',health);app.use('/service/auth',authRoutes);app.use('/service/products',productRoutes);app.use('/service/orders',orderRoutes);app.use('/service/contact',contactRoutes);app.use('/service/paylater',payLaterRoutes);app.use('/service/offers',marketingRoutes);app.use('/service/reviews',reviewRoutes);app.use('/service/admin',adminRoutes);
+const health=(req,res)=>res.json({status:'ok',service:'SBN Kirana API',features:['paylater','inventory','reports','workers','cash','marketing','coupons','reviews','referrals','bulk-orders','quotations']});
+app.get('/api/health',health);app.use('/api/auth',authRoutes);app.use('/api/products',productRoutes);app.use('/api/orders',orderRoutes);app.use('/api/bulk-orders',bulkOrderRoutes);app.use('/api/contact',contactRoutes);app.use('/api/paylater',payLaterRoutes);app.use('/api/offers',marketingRoutes);app.use('/api/reviews',reviewRoutes);app.use('/api/admin',adminRoutes);
+app.get('/service/health',health);app.use('/service/auth',authRoutes);app.use('/service/products',productRoutes);app.use('/service/orders',orderRoutes);app.use('/service/bulk-orders',bulkOrderRoutes);app.use('/service/contact',contactRoutes);app.use('/service/paylater',payLaterRoutes);app.use('/service/offers',marketingRoutes);app.use('/service/reviews',reviewRoutes);app.use('/service/admin',adminRoutes);
 app.use(notFound);app.use(errorHandler);export default app;
