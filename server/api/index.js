@@ -2,9 +2,9 @@ import app from '../src/app.js';
 import {connectDB} from '../src/config/db.js';
 import {bootstrapDatabase} from '../src/utils/bootstrap.js';
 
-const allowedOrigins=['https://sbn-kirana-store.vercel.app','https://sbn-kirana-admin.vercel.app','http://localhost:5173','http://localhost:5174',process.env.CLIENT_URL,process.env.ADMIN_URL].filter(Boolean);
-const ownedPreview=/^https:\/\/sbn-kirana-(store|admin)-[a-z0-9-]+-prakashkumawat12245-2350s-projects\.vercel\.app$/i;
-const allowedGatewayRoots=['/auth','/products','/orders','/bulk-orders','/contact','/paylater','/offers','/reviews','/admin'];
+const allowedOrigins=['https://sbn-kirana-store.vercel.app','https://sbn-kirana-admin.vercel.app','https://sbn-kirana-pos.vercel.app','http://localhost:5173','http://localhost:5174','http://localhost:5175',process.env.CLIENT_URL,process.env.ADMIN_URL,process.env.POS_URL].filter(Boolean);
+const ownedPreview=/^https:\/\/sbn-kirana-(store|admin|pos)-[a-z0-9-]+-prakashkumawat12245-2350s-projects\.vercel\.app$/i;
+const allowedGatewayRoots=['/auth','/products','/orders','/bulk-orders','/contact','/paylater','/offers','/reviews','/admin','/pos'];
 function applyCors(req,res){const origin=req.headers.origin;if(origin&&(allowedOrigins.includes(origin)||ownedPreview.test(origin))){res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin')}res.setHeader('Access-Control-Allow-Methods','GET,POST,PUT,PATCH,DELETE,OPTIONS');res.setHeader('Access-Control-Allow-Headers','Content-Type, Authorization');res.setHeader('Access-Control-Max-Age','600')}
 function applySecurityHeaders(res){res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('X-Frame-Options','DENY');res.setHeader('Referrer-Policy','no-referrer');res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=()');res.setHeader('Strict-Transport-Security','max-age=63072000; includeSubDomains; preload')}
 function applyHealthGateway(req){const parsed=new URL(req.url||'/','https://sbn-kirana.local');if(parsed.pathname!=='/service/health'&&parsed.pathname!=='/api/health')return;const route=parsed.searchParams.get('__route');if(!route)return;if(route.length>300||route.includes('..')||route.includes('\\')||!/^\/[A-Za-z0-9/_-]*$/.test(route))throw new Error('Invalid gateway route');const safe=allowedGatewayRoots.some(root=>route===root||route.startsWith(`${root}/`));if(!safe)throw new Error('Invalid gateway route');parsed.searchParams.delete('__route');const query=parsed.searchParams.toString();req.url=`/api${route}${query?`?${query}`:''}`}
