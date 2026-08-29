@@ -1,11 +1,14 @@
+import mongoose from 'mongoose';
 import Review from '../models/Review.js';
 import Product from '../models/Product.js';
 import Order from '../models/Order.js';
 
 const clean=(value,max)=>String(value||'').trim().replace(/[<>\u0000-\u001F]/g,'').slice(0,max);
+const validId=value=>mongoose.isValidObjectId(String(value||''));
 
 export async function productReviews(req,res,next){
   try{
+    if(!validId(req.params.productId))return res.json({average:0,count:0,reviews:[]});
     const reviews=await Review.find({product:req.params.productId,approved:true}).populate('user','name').sort({createdAt:-1}).lean();
     const count=reviews.length;
     const average=count?Math.round((reviews.reduce((s,r)=>s+r.rating,0)/count)*10)/10:0;
@@ -15,6 +18,7 @@ export async function productReviews(req,res,next){
 
 export async function reviewEligibility(req,res,next){
   try{
+    if(!validId(req.params.productId))return res.status(404).json({message:'Product not found'});
     const product=await Product.findById(req.params.productId).select('_id name');
     if(!product)return res.status(404).json({message:'Product not found'});
     const delivered=Boolean(await Order.exists({user:req.user._id,'items.product':product._id,status:'Delivered'}));
@@ -31,7 +35,7 @@ export async function reviewOpportunities(req,res,next){
     for(const order of deliveredOrders){
       for(const item of order.items||[]){
         const productId=String(item.product||'');
-        if(!productId||candidates.has(productId))continue;
+        if(!validId(productId)||candidates.has(productId))continue;
         candidates.set(productId,{product:productId,name:item.name||'Product',image:item.image||'',orderId:String(order._id),deliveredAt:order.updatedAt||order.createdAt});
       }
     }
@@ -57,6 +61,7 @@ export async function reviewOpportunities(req,res,next){
 
 export async function upsertReview(req,res,next){
   try{
+    if(!validId(req.params.productId))return res.status(404).json({message:'Product not found'});
     const product=await Product.findById(req.params.productId);
     if(!product)return res.status(404).json({message:'Product not found'});
     const delivered=Boolean(await Order.exists({user:req.user._id,'items.product':product._id,status:'Delivered'}));
@@ -81,6 +86,7 @@ export async function adminReviews(req,res,next){
 
 export async function moderateReview(req,res,next){
   try{
+    if(!validId(req.params.id))return res.status(404).json({message:'Review not found'});
     const review=await Review.findById(req.params.id);
     if(!review)return res.status(404).json({message:'Review not found'});
     if(req.body.approved===undefined)return res.status(400).json({message:'Approval status is required'});
@@ -93,5 +99,10 @@ export async function moderateReview(req,res,next){
 }
 
 export async function deleteReview(req,res,next){
-  try{const review=await Review.findByIdAndDelete(req.params.id);if(!review)return res.status(404).json({message:'Review not found'});res.json({message:'Review deleted'})}catch(e){next(e)}
+  try{
+    if(!validId(req.params.id))return res.status(404).json({message:'Review not found'});
+    const review=await Review.findByIdAndDelete(req.params.id);
+    if(!review)return res.status(404).json({message:'Review not found'});
+    res.json({message:'Review deleted'});
+  }catch(e){next(e)}
 }
