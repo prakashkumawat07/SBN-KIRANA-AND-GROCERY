@@ -1,7 +1,8 @@
-import {useState} from 'react';
+import {useEffect,useState} from 'react';
 import {Link,NavLink,useNavigate} from 'react-router-dom';
 import {useAuth} from '../context/AuthContext';
 import {useCart} from '../context/CartContext';
+import {api} from '../api';
 import '../account.css';
 
 export default function Navbar(){
@@ -10,6 +11,17 @@ export default function Navbar(){
   const nav=useNavigate();
   const [query,setQuery]=useState('');
   const [accountOpen,setAccountOpen]=useState(false);
+  const [reviewCount,setReviewCount]=useState(0);
+  useEffect(()=>{
+    if(!user){setReviewCount(0);return}
+    let active=true;
+    const load=()=>api('/reviews/opportunities').then(d=>{if(active)setReviewCount(Number(d?.count)||0)}).catch(()=>{});
+    load();
+    const timer=setInterval(load,60000);
+    const onFocus=()=>load();const onReviews=()=>load();
+    window.addEventListener('focus',onFocus);window.addEventListener('sbn:reviews-updated',onReviews);
+    return()=>{active=false;clearInterval(timer);window.removeEventListener('focus',onFocus);window.removeEventListener('sbn:reviews-updated',onReviews)};
+  },[user?.id]);
   function search(e){e.preventDefault();nav(`/products${query.trim()?`?search=${encodeURIComponent(query.trim())}`:''}`)}
   function signOut(){setAccountOpen(false);logout();nav('/')}
   const closeAccount=()=>setAccountOpen(false);
@@ -32,12 +44,14 @@ export default function Navbar(){
             <Link to="/bulk-orders" onClick={closeAccount}><span>📋</span><div><b>Bulk Orders</b><small>Lists, quotations & delivery</small></div></Link>
             <Link to="/wishlist" onClick={closeAccount}><span>♥</span><div><b>My Wishlist</b><small>Saved products</small></div></Link>
             <Link to="/account#paylater" onClick={closeAccount}><span>₹</span><div><b>PayLater</b><small>Outstanding & payment</small></div></Link>
+            {reviewCount>0&&<Link to="/orders#review-reminders" onClick={closeAccount}><span>⭐</span><div><b>Rate Delivered Products</b><small>{reviewCount} feedback request{reviewCount===1?'':'s'} waiting</small></div></Link>}
             <Link to="/contact" onClick={closeAccount}><span>☎</span><div><b>Contact Us</b><small>Customer support</small></div></Link>
             <Link to="/info/about" onClick={closeAccount}><span>🏪</span><div><b>About Us</b><small>Know SBN Kirana</small></div></Link>
             <div className="account-dropdown-links"><Link to="/info/help" onClick={closeAccount}>Help Center</Link><Link to="/info/refund" onClick={closeAccount}>Refunds</Link></div>
             <button className="account-logout" onClick={signOut}>↪ Logout</button>
           </div>}
         </div>:<Link className="account-block" to="/login"><small>Hello, sign in</small><b>Account</b></Link>}
+        {user&&reviewCount>0&&<Link className="review-notification-link" to="/orders#review-reminders" aria-label={`${reviewCount} delivered products waiting for feedback`} title="Delivered order feedback"><span>🔔</span><b>{reviewCount>9?'9+':reviewCount}</b></Link>}
         {user&&<Link className="paylater-nav" to="/paylater"><span>₹</span><div><small>SBN</small><b>PayLater</b></div></Link>}
         <Link className="market-cart" to="/cart"><span>🛒</span><b>{count}</b></Link>
       </div>
