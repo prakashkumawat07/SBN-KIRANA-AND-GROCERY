@@ -8,12 +8,14 @@ import {
 } from '../controllers/adminController.js';
 import {offers,createOffer,updateOffer,deleteOffer} from '../controllers/adminMarketingController.js';
 import {adminReviews,moderateReview,deleteReview} from '../controllers/reviewController.js';
+import {adminBulkOrders,adminBulkOrderDetail,updateQuotation,updateBulkStatus,updateBulkPayment,updateBulkDelivery} from '../controllers/bulkOrderController.js';
 
 const r=Router();
 r.use(protect,adminOnly);
 r.get('/dashboard',dashboard);
 r.get('/products',products);r.post('/products',createProduct);r.put('/products/:id',updateProduct);r.delete('/products/:id',deleteProduct);
 r.get('/orders',orders);r.patch('/orders/:id/status',updateOrderStatus);
+r.get('/bulk-orders',adminBulkOrders);r.get('/bulk-orders/:id',adminBulkOrderDetail);r.patch('/bulk-orders/:id/quotation',updateQuotation);r.patch('/bulk-orders/:id/status',updateBulkStatus);r.patch('/bulk-orders/:id/payment',updateBulkPayment);r.patch('/bulk-orders/:id/delivery',updateBulkDelivery);
 r.get('/customers',customers);r.get('/messages',messages);
 r.get('/paylater',payLaterCustomers);r.patch('/paylater/:id',updatePayLater);r.post('/paylater/:id/payment',recordPayLaterPayment);r.post('/paylater/:id/recovery',recordRecoveryAction);
 r.get('/stock',stock);r.patch('/stock/:id',updateStock);
