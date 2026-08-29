@@ -8,6 +8,19 @@ export async function posSales(req,res,next){
   try{res.json(await WalkInSale.find().populate('createdBy','name email').sort({createdAt:-1}).limit(250))}catch(e){next(e)}
 }
 
+export async function posSummary(req,res,next){
+  try{
+    const sales=await WalkInSale.find({paymentStatus:{$ne:'Refunded'}}).sort({createdAt:1}).lean();
+    const revenue=money(sales.reduce((s,x)=>s+(x.total||0),0));
+    const grossProfit=money(sales.reduce((s,x)=>s+(x.items||[]).reduce((a,i)=>a+((i.price||0)-(i.costPrice||0))*(i.quantity||0),0)-(x.discount||0),0));
+    const salesByDay={};
+    for(const sale of sales){const key=new Date(sale.createdAt).toISOString().slice(0,10);salesByDay[key]=(salesByDay[key]||0)+(sale.total||0)}
+    const today=new Date();today.setHours(0,0,0,0);
+    const salesToday=money(sales.filter(x=>new Date(x.createdAt)>=today).reduce((s,x)=>s+(x.total||0),0));
+    res.json({revenue,grossProfit,sales:sales.length,salesToday,averageSale:sales.length?money(revenue/sales.length):0,salesByDay:Object.entries(salesByDay).slice(-30).map(([date,total])=>({date,total:money(total)}))});
+  }catch(e){next(e)}
+}
+
 export async function createPosSale(req,res,next){
   try{
     const requested=Array.isArray(req.body.items)?req.body.items:[];
