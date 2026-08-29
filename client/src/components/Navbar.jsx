@@ -6,7 +6,7 @@ import '../account.css';
 
 export default function Navbar(){
   const {user,logout}=useAuth();
-  const {count,subtotal}=useCart();
+  const {count}=useCart();
   const nav=useNavigate();
   const [query,setQuery]=useState('');
   const [accountOpen,setAccountOpen]=useState(false);
@@ -55,6 +55,5 @@ export default function Navbar(){
       <Link to="/wishlist">Wishlist</Link>
       {user&&<Link to="/orders">My Orders</Link>}
     </nav>
-    {count>0&&<div className="cart-conversion-bar"><Link to="/cart" className="cart-conversion-summary"><span>🛒</span><div><b>{count} item{count===1?'':'s'} in your cart</b><small>Basket total ₹{Number(subtotal||0).toLocaleString('en-IN')}</small></div></Link><Link className="cart-conversion-checkout" to="/checkout">Checkout now →</Link></div>}
   </>
 }
