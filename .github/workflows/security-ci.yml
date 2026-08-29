@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [client, admin, server]
+        app: [client, admin, pos, server]
     defaults:
       run:
         working-directory: ${{ matrix.app }}
@@ -40,3 +40,6 @@ jobs:
           node --check api/index.js
           node --check src/controllers/authController.js
           node --check src/controllers/payLaterKycController.js
+          node --check src/controllers/posController.js
+          node --check src/controllers/posStaffController.js
+          node --check src/routes/posRoutes.js
