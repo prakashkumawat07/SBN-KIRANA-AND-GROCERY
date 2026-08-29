@@ -57,6 +57,7 @@ export default function Navbar(){
       </div>
     </header>
     <nav className="category-nav">
+      <NavLink to="/" end><b>⌂ Home</b></NavLink>
       <Link to="/products"><b>☰ All Categories</b></Link>
       <NavLink to="/products?category=Staples">Staples</NavLink>
       <NavLink to="/products?category=Dairy">Dairy</NavLink>
