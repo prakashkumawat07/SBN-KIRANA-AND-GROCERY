@@ -8,12 +8,13 @@ export default function ProductCard({product}){
   const [saved,setSaved]=useState(()=>{try{return JSON.parse(localStorage.getItem(WISH)||'[]').includes(product._id)}catch{return false}});
   const [added,setAdded]=useState(false);
   const saving=product.mrp>product.price?product.mrp-product.price:0;
+  const cover=product.image||(Array.isArray(product.images)&&product.images.length?(typeof product.images[0]==='string'?product.images[0]:product.images[0]?.thumbnail||product.images[0]?.src):'');
   function toggle(){let ids=[];try{ids=JSON.parse(localStorage.getItem(WISH)||'[]')}catch{}ids=ids.includes(product._id)?ids.filter(x=>x!==product._id):[product._id,...ids];localStorage.setItem(WISH,JSON.stringify(ids));setSaved(ids.includes(product._id))}
   function add(){if(!product.stock)return;addToCart(product);setAdded(true);setTimeout(()=>setAdded(false),1200)}
   function buyNow(){if(!product.stock)return;addToCart(product);nav('/checkout')}
   return <article className="product-card conversion-product-card">
     <div className="product-image">
-      <Link to={`/product/${product._id}`}><img src={product.image} alt={product.name}/></Link>
+      <Link to={`/product/${product._id}`}><img src={cover} alt={product.name}/></Link>
       {product.discount>0&&<span className="discount">{product.discount}% OFF</span>}
       <button className="wish-btn" aria-label="Save item" onClick={toggle}>{saved?'♥':'♡'}</button>
     </div>
