@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 const WISH='sbn_wishlist';
-const BADGES={limited:'Limited stock · Order soon',selling_fast:'Selling fast',popular:'Popular choice',fresh:'Fresh arrival',best_value:'Best value',hot_deal:'Hot deal',trending:'Trending now',today_pick:"Today's pick"};
+const BADGES={limited:'Limited Stock',selling_fast:'Selling Fast',few_left:'Few Left',in_stock:'In Stock',popular:'Popular choice',fresh:'Fresh arrival',best_value:'Best value',hot_deal:'Hot deal',trending:'Trending now',today_pick:"Today's pick"};
 export default function ProductCard({product}){
   const nav=useNavigate();
   const [saved,setSaved]=useState(()=>{try{return JSON.parse(localStorage.getItem(WISH)||'[]').includes(product._id)}catch{return false}});

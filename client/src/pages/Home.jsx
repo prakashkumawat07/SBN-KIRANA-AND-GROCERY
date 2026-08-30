@@ -22,21 +22,23 @@ export default function Home(){
   const dealProducts=useMemo(()=>[...products].sort((a,b)=>(b.featured?1:0)-(a.featured?1:0)||(b.discount||0)-(a.discount||0)||(a.price||0)-(b.price||0)).slice(0,8),[products]);
   const mobileShelves=useMemo(()=>{
     const all=unique(products);
-    const discounted=[...all].sort((a,b)=>(b.discount||0)-(a.discount||0)||(b.featured?1:0)-(a.featured?1:0));
-    const featured=[...all].sort((a,b)=>(b.featured?1:0)-(a.featured?1:0)||(b.discount||0)-(a.discount||0));
-    const pick=(cats,offset=0)=>{
+    const byPriority=rows=>[...rows].sort((a,b)=>(b.dealPriority||0)-(a.dealPriority||0)||(b.featured?1:0)-(a.featured?1:0)||(b.discount||0)-(a.discount||0));
+    const discounted=byPriority(all).sort((a,b)=>(b.dealPriority||0)-(a.dealPriority||0)||(b.discount||0)-(a.discount||0)||(b.featured?1:0)-(a.featured?1:0));
+    const featured=byPriority(all);
+    const assigned=key=>byPriority(all.filter(p=>Array.isArray(p.dealRails)&&p.dealRails.includes(key)));
+    const pick=(rail,cats,offset=0)=>{
       const preferred=all.filter(p=>cats.includes(p.category));
       const rotated=[...all.slice(offset),...all.slice(0,offset)];
-      return unique([...preferred,...rotated]).slice(0,10);
+      return unique([...assigned(rail),...byPriority(preferred),...rotated]).slice(0,10);
     };
     return [
-      {key:'top',eyebrow:'FOR YOU',title:'Top picks for your basket',to:'/products',items:featured.slice(0,10)},
-      {key:'deals',eyebrow:'SAVE MORE',title:'Best deals today',to:'/deals',items:discounted.slice(0,10)},
-      {key:'daily',eyebrow:'EVERYDAY',title:'Daily essentials',to:'/products?search=Daily%20Essentials',items:pick(['Staples','Cooking','Household'],2)},
-      {key:'staples',eyebrow:'PANTRY',title:'Staples & cooking',to:'/products?search=Staples',items:pick(['Staples','Cooking'],4)},
-      {key:'dairy',eyebrow:'FRESH PICKS',title:'Dairy & breakfast',to:'/products?search=Dairy',items:pick(['Dairy','Tea & Breakfast'],6)},
-      {key:'snacks',eyebrow:'CRAVINGS',title:'Snacks & beverages',to:'/products?search=Snacks',items:pick(['Snacks','Beverages'],8)},
-      {key:'homecare',eyebrow:'HOME NEEDS',title:'Home & personal care',to:'/products?search=Home%20Care',items:pick(['Home Care','Personal Care','Baby Care'],1)}
+      {key:'top',eyebrow:'FOR YOU',title:'Top picks for your basket',to:'/products',items:unique([...assigned('top_picks'),...featured]).slice(0,10)},
+      {key:'deals',eyebrow:'SAVE MORE',title:'Best deals today',to:'/deals',items:unique([...assigned('hot_deals'),...assigned('best_value'),...discounted]).slice(0,10)},
+      {key:'daily',eyebrow:'EVERYDAY',title:'Daily essentials',to:'/products?search=Daily%20Essentials',items:pick('daily_essentials',['Staples','Cooking','Household'],2)},
+      {key:'staples',eyebrow:'PANTRY',title:'Staples & cooking',to:'/products?search=Staples',items:pick('staples',['Staples','Cooking'],4)},
+      {key:'dairy',eyebrow:'FRESH PICKS',title:'Dairy & breakfast',to:'/products?search=Dairy',items:pick('dairy',['Dairy','Tea & Breakfast'],6)},
+      {key:'snacks',eyebrow:'CRAVINGS',title:'Snacks & beverages',to:'/products?search=Snacks',items:pick('snacks',['Snacks','Beverages'],8)},
+      {key:'homecare',eyebrow:'HOME NEEDS',title:'Home & personal care',to:'/products?search=Home%20Care',items:pick('home_care',['Home Care','Personal Care','Baby Care'],1)}
     ].filter(s=>s.items.length);
   },[products]);
   const offerValue=featuredOffer?(featuredOffer.type==='percent'?`${featuredOffer.value}% OFF`:`₹${featuredOffer.value} OFF`):'BEST VALUE';
@@ -105,7 +107,7 @@ export default function Home(){
       </div>
 
       <div className="desktop-home-products"><div className="product-grid home-first-product-grid">{dealProducts.map(p=><ProductCard key={p._id} product={p}/>)}</div></div>
-      <div className="mobile-home-shelves">{mobileShelves.map(s=><section className="mobile-product-shelf" key={s.key}><div className="mobile-shelf-head"><div><small>{s.eyebrow}</small><h2>{s.title}</h2></div><Link to={s.to}>View all →</Link></div><div className="mobile-product-rail">{s.items.map(p=><ProductCard key={`${s.key}-${p._id}`} product={p}/>)}<Link className="mobile-shelf-more" to={s.to}><b>More</b><span>→</span></Link></div></section>)}</div>
+      <div className="mobile-home-shelves">{mobileShelves.map(s=><section className="mobile-product-shelf" key={s.key}><div className="mobile-shelf-head"><div><small>{s.eyebrow}</small><h2>{s.title}</h2></div><Link to={s.to}>View all →</Link></div><div className="mobile-product-rail" aria-label={`${s.title} products`}>{s.items.map(p=><ProductCard key={`${s.key}-${p._id}`} product={p}/>)}<Link className="mobile-shelf-more" to={s.to}><b>More</b><span>→</span></Link></div></section>)}</div>
       <div className="home-first-footer"><span>✓ Current selling price</span><span>✓ Tap for full product details</span><span>✓ Stock managed securely by store</span><Link to="/products">View complete catalogue →</Link></div>
     </section>
 

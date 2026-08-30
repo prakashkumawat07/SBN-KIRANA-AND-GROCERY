@@ -11,7 +11,7 @@ const validImage=(value,maxDataLength)=>{
 };
 
 const DEAL_RAILS=['hot_deals','trending','best_value','top_picks','daily_essentials','staples','dairy','snacks','home_care'];
-const CUSTOMER_BADGES=['none','limited','selling_fast','popular','fresh','best_value','hot_deal','trending','today_pick'];
+const CUSTOMER_BADGES=['none','limited','selling_fast','few_left','in_stock','popular','fresh','best_value','hot_deal','trending','today_pick'];
 
 const productImageSchema=new mongoose.Schema({
   src:{type:String,required:true,validate:{validator:v=>validImage(v,430000),message:'Invalid product image'}},

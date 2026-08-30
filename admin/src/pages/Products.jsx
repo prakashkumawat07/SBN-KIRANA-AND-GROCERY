@@ -4,7 +4,7 @@ import '../products-admin.css';
 
 const CATEGORIES=['Staples','Dairy','Snacks','Cooking','Beverages','Personal Care','Home Care','Household','Baby Care','Other'];
 const STOCK_UNITS=['qty','kg','g','ltr','ml','pack'];
-const CUSTOMER_BADGES=[['none','No customer stock badge'],['limited','Limited stock · Order soon'],['selling_fast','Selling fast'],['popular','Popular choice'],['fresh','Fresh arrival'],['best_value','Best value']];
+const CUSTOMER_BADGES=[['none','No customer stock badge'],['limited','Limited Stock'],['selling_fast','Selling Fast'],['few_left','Few Left'],['in_stock','In Stock'],['popular','Popular choice'],['fresh','Fresh arrival'],['best_value','Best value']];
 const makeBlank=()=>({name:'',brand:'',sku:'',barcode:'',category:'Staples',price:'',mrp:'',costPrice:'',unit:'1 kg',stock:'',stockUnit:'qty',lowStockThreshold:10,customerBadge:'none',description:'',tags:'',featured:false,images:[]});
 const imageSrc=img=>typeof img==='string'?img:img?.src||'';
 const imageThumb=img=>typeof img==='string'?img:img?.thumbnail||img?.src||'';

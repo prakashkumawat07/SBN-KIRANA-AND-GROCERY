@@ -11,6 +11,8 @@ const stars=n=>'★★★★★'.slice(0,Math.round(Number(n)||0))+'☆☆☆☆
 const MARKETING_BADGES={
   limited:{icon:'⏳',label:'Limited stock',detail:'Popular item · order soon'},
   selling_fast:{icon:'🔥',label:'Selling fast',detail:'Trending with customers'},
+  few_left:{icon:'⚡',label:'Few left',detail:'High demand · shop soon'},
+  in_stock:{icon:'✓',label:'In stock',detail:'Available for ordering'},
   popular:{icon:'★',label:'Popular choice',detail:'Frequently chosen essential'},
   fresh:{icon:'✨',label:'Fresh arrival',detail:'Recently added to the store'},
   best_value:{icon:'₹',label:'Best value',detail:'Strong everyday value'},

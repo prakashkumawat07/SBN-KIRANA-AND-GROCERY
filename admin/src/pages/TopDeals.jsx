@@ -5,7 +5,7 @@ import '../top-deals-admin.css';
 const RAILS=[
   ['hot_deals','🔥','Hot Deals'],['trending','⚡','Trending'],['best_value','₹','Best Value'],['top_picks','★','Top Picks'],['daily_essentials','🛒','Daily Essentials'],['staples','🌾','Staples'],['dairy','🥛','Dairy'],['snacks','🍪','Snacks & Beverages'],['home_care','🧼','Home & Personal Care']
 ];
-const BADGES=[['none','No badge'],['limited','Limited stock · Order soon'],['selling_fast','Selling fast'],['popular','Popular choice'],['fresh','Fresh arrival'],['best_value','Best value'],['hot_deal','Hot deal'],['trending','Trending now'],['today_pick',"Today's pick"]];
+const BADGES=[['none','No badge'],['limited','Limited Stock'],['selling_fast','Selling Fast'],['few_left','Few Left'],['in_stock','In Stock'],['popular','Popular choice'],['fresh','Fresh arrival'],['best_value','Best value'],['hot_deal','Hot deal'],['trending','Trending now'],['today_pick',"Today's pick"]];
 const normalize=p=>({dealRails:Array.isArray(p.dealRails)?p.dealRails:[],dealPriority:Number(p.dealPriority)||0,dealLabel:p.dealLabel||'',customerBadge:p.customerBadge||'none'});
 
 export default function TopDeals(){
