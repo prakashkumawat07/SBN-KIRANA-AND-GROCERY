@@ -8,6 +8,6 @@
     "seed": "npm run seed --prefix server"
   },
   "devDependencies": {
-    "concurrently": "9.2.4"
+    "concurrently": "10.0.5"
   }
 }
