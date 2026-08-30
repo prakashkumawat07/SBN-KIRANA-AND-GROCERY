@@ -1,4 +1,4 @@
-import {createContext,useContext,useState} from 'react';
+import {createContext,useContext,useEffect,useState} from 'react';
 import {adminApi} from '../api';
 const C=createContext();
 export const useAdminAuth=()=>useContext(C);
@@ -14,6 +14,14 @@ function initialAdmin(){
 
 export function AdminAuthProvider({children}){
   const [admin,setAdmin]=useState(initialAdmin);
+  const [checking,setChecking]=useState(Boolean(localStorage.getItem('sbn_admin_token')));
+  useEffect(()=>{
+    if(!localStorage.getItem('sbn_admin_token')){setAdmin(null);setChecking(false);return}
+    adminApi('/auth/me').then(data=>{
+      if(data?.user?.role!=='admin')throw new Error('Admin access required');
+      localStorage.setItem('sbn_admin',JSON.stringify(data.user));setAdmin(data.user);
+    }).catch(()=>{localStorage.removeItem('sbn_admin_token');localStorage.removeItem('sbn_admin');setAdmin(null)}).finally(()=>setChecking(false));
+  },[]);
   function saveSession(data){
     if(!data?.token||!data?.user)throw new Error('Invalid admin session response');
     if(data.user.role!=='admin')throw new Error('Admin access only');
@@ -34,5 +42,5 @@ export function AdminAuthProvider({children}){
   }
   function updateSession(data){saveSession(data)}
   function logout(){localStorage.removeItem('sbn_admin_token');localStorage.removeItem('sbn_admin');setAdmin(null)}
-  return <C.Provider value={{admin,login,verifyTwoFactor,updateSession,logout}}>{children}</C.Provider>
+  return <C.Provider value={{admin,checking,login,verifyTwoFactor,updateSession,logout}}>{children}</C.Provider>
 }

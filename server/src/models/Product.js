@@ -1,12 +1,12 @@
 import mongoose from 'mongoose';
+import {inspectDataUri} from '../utils/dataUri.js';
 
 const urlImage=/^https?:\/\//i;
-const dataImage=/^data:image\/(jpeg|png|webp);base64,/i;
 const validImage=(value,maxDataLength)=>{
   const v=String(value||'').trim();
   if(!v)return false;
   if(urlImage.test(v))return v.length<=2048;
-  if(dataImage.test(v))return v.length<=maxDataLength;
+  if(v.length<=maxDataLength&&inspectDataUri(v,{allowedMime:['image/jpeg','image/png','image/webp'],maxBytes:Math.floor(maxDataLength*3/4)}))return true;
   return false;
 };
 

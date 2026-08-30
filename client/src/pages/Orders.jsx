@@ -2,6 +2,7 @@ import {useEffect,useMemo,useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {api} from '../api';
 import {useCart} from '../context/CartContext';
+import {productAvailable,productOrderLimit} from '../utils/productAvailability';
 
 const productIdOf=value=>String(value?._id||value||'');
 export default function Orders(){
@@ -9,7 +10,7 @@ export default function Orders(){
   const load=()=>Promise.all([api('/orders/mine'),api('/reviews/opportunities')]).then(([o,r])=>{setOrders(o||[]);setReviewOpps(r?.opportunities||[])}).catch(()=>{});
   useEffect(()=>{let active=true;const refresh=()=>{if(active)load()};refresh();const timer=setInterval(refresh,60000);const onFocus=()=>refresh();const onReviews=()=>refresh();window.addEventListener('focus',onFocus);window.addEventListener('sbn:reviews-updated',onReviews);return()=>{active=false;clearInterval(timer);window.removeEventListener('focus',onFocus);window.removeEventListener('sbn:reviews-updated',onReviews)}},[]);
   const reviewIds=useMemo(()=>new Set(reviewOpps.map(x=>productIdOf(x.product))),[reviewOpps]);
-  async function buyAgain(order){setBusy(order._id);setMsg('');try{let added=0;let skipped=0;for(const item of order.items){if(!item.product){skipped++;continue}try{const p=await api(`/products/${productIdOf(item.product)}`);if(!p?.stock){skipped++;continue}const qty=Math.min(Number(item.quantity)||1,p.stock);for(let n=0;n<qty;n++)addToCart(p);added+=qty}catch{skipped++}}if(!added)return setMsg('These products are currently unavailable.');setMsg(`${added} item${added===1?'':'s'} added to cart${skipped?` · ${skipped} unavailable`:''}.`);nav('/cart')}finally{setBusy('')}}
+  async function buyAgain(order){setBusy(order._id);setMsg('');try{let added=0;let skipped=0;for(const item of order.items){if(!item.product){skipped++;continue}try{const p=await api(`/products/${productIdOf(item.product)}`);if(!productAvailable(p)){skipped++;continue}const qty=Math.min(Number(item.quantity)||1,productOrderLimit(p));for(let n=0;n<qty;n++)addToCart(p);added+=qty}catch{skipped++}}if(!added)return setMsg('These products are currently unavailable.');setMsg(`${added} item${added===1?'':'s'} added to cart${skipped?` · ${skipped} unavailable`:''}.`);nav('/cart')}finally{setBusy('')}}
   function rateProduct(productId){nav(`/product/${productId}#rate-product`)}
   return <main className="section"><div className="page-title"><span className="eyebrow">Account</span><h1>My Orders</h1><p>Track purchases and quickly rebuild a previous basket using current prices and stock.</p></div>{msg&&<div className="buy-again-msg">{msg}</div>}
     {reviewOpps.length>0&&<section id="review-reminders" className="review-reminder-panel"><div className="review-reminder-head"><div><span>🔔 DELIVERED ORDER</span><h2>How was your purchase?</h2><p>{reviewOpps.length} delivered product{reviewOpps.length===1?' is':'s are'} ready for your rating and suggestion.</p></div><b>{reviewOpps.length}</b></div><div className="review-reminder-items">{reviewOpps.map(x=><article key={productIdOf(x.product)}>{x.image&&<img src={x.image} alt=""/>}<div><b>{x.name}</b><small>Order #{String(x.orderId||'').slice(-8).toUpperCase()} · Delivered</small></div><button onClick={()=>rateProduct(productIdOf(x.product))}>Rate & Suggest →</button></article>)}</div></section>}

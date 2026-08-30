@@ -8,6 +8,9 @@ import CashEntry from '../models/CashEntry.js';
 import RecoveryAction from '../models/RecoveryAction.js';
 
 const money=n=>Math.round((Number(n)||0)*100)/100;
+const safeAdminRecord=u=>({_id:u._id,name:u.name,email:u.email,phone:u.phone||'',role:u.role,isActive:u.isActive,twoFactorEnabled:Boolean(u.twoFactor?.enabled),lastPasswordChangedAt:u.lastPasswordChangedAt,createdAt:u.createdAt,updatedAt:u.updatedAt});
+const PRODUCT_FIELDS=['name','brand','sku','barcode','category','price','mrp','costPrice','unit','stock','stockUnit','lowStockThreshold','customerBadge','dealRails','dealPriority','dealLabel','image','images','description','tags','featured'];
+const productInput=body=>Object.fromEntries(PRODUCT_FIELDS.filter(key=>Object.prototype.hasOwnProperty.call(body||{},key)).map(key=>[key,body[key]]));
 const profitFromOrders=orders=>money(orders.reduce((sum,o)=>sum+o.items.reduce((s,i)=>s+((i.price||0)-(i.costPrice||0))*(i.quantity||0),0),0));
 const profitFromPos=sales=>money(sales.reduce((sum,o)=>sum+(o.items||[]).reduce((s,i)=>s+((i.price||0)-(i.costPrice||0))*(i.quantity||0),0)-(o.discount||0),0));
 
@@ -33,8 +36,8 @@ export async function dashboard(req,res,next){
 }
 
 export async function products(req,res,next){try{res.json(await Product.find().sort({createdAt:-1}))}catch(e){next(e)}}
-export async function createProduct(req,res,next){try{res.status(201).json(await Product.create(req.body))}catch(e){next(e)}}
-export async function updateProduct(req,res,next){try{const p=await Product.findById(req.params.id);if(!p)return res.status(404).json({message:'Product not found'});Object.assign(p,req.body);await p.save();res.json(p)}catch(e){next(e)}}
+export async function createProduct(req,res,next){try{res.status(201).json(await Product.create(productInput(req.body)))}catch(e){next(e)}}
+export async function updateProduct(req,res,next){try{const p=await Product.findById(req.params.id);if(!p)return res.status(404).json({message:'Product not found'});Object.assign(p,productInput(req.body));await p.save();res.json(p)}catch(e){next(e)}}
 export async function deleteProduct(req,res,next){try{const p=await Product.findByIdAndDelete(req.params.id);if(!p)return res.status(404).json({message:'Product not found'});res.json({message:'Product deleted'})}catch(e){next(e)}}
 
 export async function orders(req,res,next){try{res.setHeader('Cache-Control','no-store, private');res.json(await Order.find().populate('user','name email phone payLater').sort({createdAt:-1}).limit(500))}catch(e){next(e)}}
@@ -206,8 +209,10 @@ export async function createAdmin(req,res,next){
   try{
     const name=String(req.body.name||'').trim().slice(0,100),email=String(req.body.email||'').trim().toLowerCase().slice(0,160),phone=String(req.body.phone||'').trim().slice(0,20),password=String(req.body.password||'');
     if(!name||!email||!password)return res.status(400).json({message:'Name, email and password are required'});
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return res.status(400).json({message:'Enter a valid email address'});
     const exists=await User.findOne({email});if(exists)return res.status(409).json({message:'Email already exists'});
-    res.status(201).json(await User.create({name,email,phone,password,role:'admin'}));
+    const created=await User.create({name,email,phone,password,role:'admin'});
+    res.status(201).json(safeAdminRecord(created));
   }catch(e){next(e)}
 }
 export async function updateAdmin(req,res,next){
@@ -215,7 +220,14 @@ export async function updateAdmin(req,res,next){
     const a=await User.findOne({_id:req.params.id,role:'admin'});if(!a)return res.status(404).json({message:'Admin not found'});
     if(req.body.name!==undefined)a.name=String(req.body.name||'').trim().slice(0,100);
     if(req.body.phone!==undefined)a.phone=String(req.body.phone||'').trim().slice(0,20);
-    if(req.body.isActive!==undefined)a.isActive=Boolean(req.body.isActive);
-    await a.save();res.json(a);
+    if(req.body.isActive!==undefined){
+      const nextActive=Boolean(req.body.isActive);
+      if(!nextActive&&a.isActive){
+        const activeAdmins=await User.countDocuments({role:'admin',isActive:true});
+        if(activeAdmins<=1)return res.status(409).json({message:'The last active admin account cannot be disabled'});
+      }
+      if(a.isActive!==nextActive){a.isActive=nextActive;a.sessionVersion=Number(a.sessionVersion||0)+1;}
+    }
+    await a.save();res.json(safeAdminRecord(a));
   }catch(e){next(e)}
 }

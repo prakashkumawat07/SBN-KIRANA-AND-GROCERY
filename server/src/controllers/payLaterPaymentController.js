@@ -4,6 +4,7 @@ import User from '../models/User.js';
 import CashEntry from '../models/CashEntry.js';
 import RecoveryAction from '../models/RecoveryAction.js';
 import {encryptPaymentProof,decryptPaymentProof} from '../utils/paymentProofCrypto.js';
+import {inspectDataUri} from '../utils/dataUri.js';
 
 const methods=['ONLINE','UPI','BANK_TRANSFER','CASH_AT_STORE'];
 const proofMime=['image/jpeg','image/png'];
@@ -45,8 +46,7 @@ export async function submitPayLaterPayment(req,res,next){
       const size=Math.max(Number(incoming.size)||0,0);
       if(size<=0||size>900000)return res.status(400).json({message:'Payment screenshot must be under 900 KB'});
       const data=String(incoming.data||'').trim();
-      const prefix=incoming.mimeType==='image/png'?'data:image/png;base64,':'data:image/jpeg;base64,';
-      if(!data.startsWith(prefix))return res.status(400).json({message:'Payment screenshot content does not match the file type'});
+      if(!inspectDataUri(data,{allowedMime:proofMime,maxBytes:900000,declaredBytes:size}))return res.status(400).json({message:'Payment screenshot content does not match the file type or size'});
       proof={fileName:safe(incoming.fileName,180),mimeType:incoming.mimeType,size,...encryptPaymentProof(data)};
     }
     const payment=await PayLaterPayment.create({user:req.user._id,amount,method,reference:method==='CASH_AT_STORE'?'':reference,note,proof,status:'pending',outstandingAtSubmit:outstanding});

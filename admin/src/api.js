@@ -46,7 +46,9 @@ async function demoApi(path,options={}){
   const method=(options.method||'GET').toUpperCase();
   const b=bodyOf(options);const d=loadDemo();
   if(path==='/auth/login'&&method==='POST'){
-    if((b.email||'').toLowerCase()!=='admin@sbnkirana.com'||b.password!=='ChangeMe123!')throw new Error('Invalid admin email or password');
+    const demoEmail=String(import.meta.env.VITE_DEMO_ADMIN_EMAIL||'').toLowerCase();
+    const demoPassword=String(import.meta.env.VITE_DEMO_ADMIN_PASSWORD||'');
+    if(!demoEmail||!demoPassword||(b.email||'').toLowerCase()!==demoEmail||b.password!==demoPassword)throw new Error('Demo login is not configured');
     const user={id:'a10000000000000000000001',_id:'a10000000000000000000001',name:'SBN Admin',email:'admin@sbnkirana.com',role:'admin'};
     return {user,token:'sbn-demo-admin-token'};
   }
@@ -85,10 +87,13 @@ export async function adminApi(path,options={}){
   try{
     const res=await fetch(`${API_URL}${path}`,{...options,headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{}) ,...(options.headers||{})}});
     const data=await res.json().catch(()=>({}));
-    if(!res.ok)throw new Error(data.message||'Request failed');
+    if(!res.ok){
+      if(res.status===401&&token){localStorage.removeItem('sbn_admin_token');localStorage.removeItem('sbn_admin')}
+      throw new Error(data.message||'Request failed');
+    }
     return data;
   }catch(error){
-    if(error instanceof TypeError||String(error?.message||'').toLowerCase().includes('fetch'))return demoApi(path,options);
+    if(!import.meta.env.PROD&&(error instanceof TypeError||String(error?.message||'').toLowerCase().includes('fetch')))return demoApi(path,options);
     throw error;
   }
 }

@@ -32,7 +32,7 @@ export async function register(req,res,next){
 export async function login(req,res,next){
   try{
     const email=emailOf(req.body.email),password=String(req.body.password||'');
-    if(!email||!password)return res.status(401).json({message:'Invalid email or password'});
+    if(!email||email.length>160||!password||password.length>128){await recordLoginFailure(req);return res.status(401).json({message:'Invalid email or password'});}
     let user=await User.findOne({email}).select('+password');
     if(!user){await recordLoginFailure(req);return res.status(401).json({message:'Invalid email or password'})}
     if(!(await user.comparePassword(password))){await recordLoginFailure(req);await logAdminLogin(req,user,'password_failed');return res.status(401).json({message:'Invalid email or password'})}

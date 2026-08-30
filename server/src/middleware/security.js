@@ -3,12 +3,15 @@ import SecurityRateLimit from '../models/SecurityRateLimit.js';
 
 const cleanEmail=v=>String(v||'').trim().toLowerCase().slice(0,160);
 const ipOf=req=>String(req.headers['x-forwarded-for']||req.ip||req.socket?.remoteAddress||'unknown').split(',')[0].trim().slice(0,80);
-const secret=()=>process.env.JWT_SECRET||'sbn-security-fallback';
+const secret=()=>process.env.JWT_SECRET||'sbn-development-rate-limit-key';
 const keyFor=(type,value)=>crypto.createHash('sha256').update(`${type}|${value}|${secret()}`).digest('hex');
 
 export function securityHeaders(req,res,next){
   res.setHeader('X-Content-Type-Options','nosniff');
   res.setHeader('X-Frame-Options','DENY');
+  res.setHeader('X-DNS-Prefetch-Control','off');
+  res.setHeader('X-Permitted-Cross-Domain-Policies','none');
+  res.setHeader('Cross-Origin-Opener-Policy','same-origin');
   res.setHeader('Referrer-Policy','no-referrer');
   res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=()');
   res.setHeader('Content-Security-Policy',"default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
@@ -92,6 +95,22 @@ export async function registrationThrottle(req,res,next){
     next();
   }catch{next()}
 }
+
+function writeThrottle(scope,{windowMs,max,blockMs=windowMs}){
+  return async function throttle(req,res,next){
+    try{
+      const key=keyFor(scope,ipOf(req));
+      const existing=await getLimit(key);
+      if(isBlocked(existing))return res.status(429).json({message:'Too many requests. Please wait and try again.'});
+      const doc=await bump(key,{windowMs,max:max+1,blockMs});
+      if(doc.count>max)return res.status(429).json({message:'Too many requests. Please wait and try again.'});
+      next();
+    }catch{next()}
+  };
+}
+
+export const contactThrottle=writeThrottle('contact-ip',{windowMs:60*60*1000,max:8});
+export const couponThrottle=writeThrottle('coupon-ip',{windowMs:10*60*1000,max:60});
 
 export function validatePassword(password){
   const value=String(password||'');

@@ -26,9 +26,9 @@ export async function createOrder(req,res,next){
     const combined=new Map();
     for(const item of items){
       const id=String(item?.product||'');const quantity=Number(item?.quantity);
-      if(!mongoose.isValidObjectId(id)||!Number.isInteger(quantity)||quantity<1||quantity>100)fail('Invalid product or quantity');
+      if(!mongoose.isValidObjectId(id)||!Number.isInteger(quantity)||quantity<1||quantity>10)fail('Invalid product or quantity');
       combined.set(id,(combined.get(id)||0)+quantity);
-      if(combined.get(id)>100)fail('Maximum quantity per product is 100');
+      if(combined.get(id)>10)fail('Maximum quantity per product is 10');
     }
     const requested=[...combined.entries()].map(([product,quantity])=>({product,quantity}));
     session=await mongoose.startSession();

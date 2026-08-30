@@ -2,6 +2,7 @@ import PayLaterApplication from '../models/PayLaterApplication.js';
 import User from '../models/User.js';
 import RecoveryAction from '../models/RecoveryAction.js';
 import {encryptSensitive,decryptSensitive} from '../utils/crypto.js';
+import {inspectDataUri} from '../utils/dataUri.js';
 
 const allowedProofs=['AADHAAR','VOTER_ID','PAN'];
 const allowedMime=['image/jpeg','image/png','application/pdf'];
@@ -15,8 +16,7 @@ function validateUpload(file={},label='Document'){
   const size=Math.max(Number(file.size)||0,0);
   if(size<=0||size>900000)throw Object.assign(new Error(`${label} must be under 900 KB`),{status:400});
   const data=clean(file.data);
-  const expectedPrefix=file.mimeType==='application/pdf'?'data:application/pdf;base64,':file.mimeType==='image/png'?'data:image/png;base64,':'data:image/jpeg;base64,';
-  if(!data.startsWith(expectedPrefix))throw Object.assign(new Error(`${label} content does not match the selected file type`),{status:400});
+  if(!inspectDataUri(data,{allowedMime,maxBytes:900000,declaredBytes:size}))throw Object.assign(new Error(`${label} content does not match the selected file type or size`),{status:400});
   return {size,data};
 }
 

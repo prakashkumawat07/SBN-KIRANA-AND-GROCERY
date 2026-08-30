@@ -9,7 +9,7 @@ const schema=new mongoose.Schema({
   statusCode:{type:Number,default:0},
   ip:{type:String,default:''},
   userAgent:{type:String,default:''},
-  createdAt:{type:Date,default:Date.now,index:true}
+  createdAt:{type:Date,default:Date.now}
 },{versionKey:false});
 
 schema.index({admin:1,createdAt:-1});

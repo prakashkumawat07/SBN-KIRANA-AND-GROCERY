@@ -1,6 +1,7 @@
 import {Link,useNavigate} from 'react-router-dom';
 import {useCart} from '../context/CartContext';
 import {useAuth} from '../context/AuthContext';
+import {productAvailable,productOrderLimit} from '../utils/productAvailability';
 
 const WISH='sbn_wishlist';
 export default function MobileCart(){
@@ -23,10 +24,11 @@ export default function MobileCart(){
     <section className="mobile-cart-items">{items.map(item=>{
       const cover=item.image||(Array.isArray(item.images)&&item.images.length?(typeof item.images[0]==='string'?item.images[0]:item.images[0]?.thumbnail||item.images[0]?.src):'');
       const discount=item.mrp>item.price?Math.round((1-item.price/item.mrp)*100):0;
-      const stockCount=Math.max(1,Math.min(Number(item.stock)||1,10));
+      const stockCount=Math.max(1,productOrderLimit(item));
+      const available=productAvailable(item);
       return <article className="mobile-cart-item" key={item._id}>
         <Link to={`/product/${item._id}`} className="mobile-cart-image"><img src={cover} alt={item.name}/><small>Tap to view</small></Link>
-        <div className="mobile-cart-copy"><Link to={`/product/${item._id}`}><h2>{item.name}</h2></Link><p>{item.unit||'Pack'}</p><div className="mobile-cart-rating">★ {Number(item.rating||item.averageRating||4.5).toFixed(1)} <span>• {item.stock?'In stock':'Check stock'}</span></div><div className="mobile-cart-price">{discount>0&&<strong>↓{discount}%</strong>}{item.mrp>item.price&&<del>₹{item.mrp}</del>}<b>₹{item.price}</b></div></div>
+        <div className="mobile-cart-copy"><Link to={`/product/${item._id}`}><h2>{item.name}</h2></Link><p>{item.unit||'Pack'}</p><div className="mobile-cart-rating">★ {Number(item.rating||item.averageRating||4.5).toFixed(1)} <span>• {available?'In stock':'Check stock'}</span></div><div className="mobile-cart-price">{discount>0&&<strong>↓{discount}%</strong>}{item.mrp>item.price&&<del>₹{item.mrp}</del>}<b>₹{item.price}</b></div></div>
         <label className="mobile-cart-qty">Qty:<select value={Math.min(item.qty,stockCount)} onChange={e=>updateQty(item._id,e.target.value)}>{Array.from({length:stockCount},(_,n)=><option value={n+1} key={n+1}>{n+1}</option>)}</select></label>
         <div className="mobile-cart-actions"><button onClick={()=>remove(item._id)}>🗑 Remove</button><button onClick={()=>saveForLater(item)}>♡ Save for later</button><button onClick={()=>buyNow(item)}>⚡ Buy this now</button></div>
       </article>})}</section>

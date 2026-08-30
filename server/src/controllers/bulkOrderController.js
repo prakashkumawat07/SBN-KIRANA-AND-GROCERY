@@ -1,4 +1,5 @@
 import BulkOrder from '../models/BulkOrder.js';
+import {inspectDataUri} from '../utils/dataUri.js';
 
 const round=n=>Math.round((Number(n)||0)*100)/100;
 const allowedAttachments=new Set(['text/plain','text/csv','application/pdf','image/jpeg','image/png']);
@@ -22,8 +23,8 @@ function cleanAttachment(a){
   const size=Number(a.size)||0;
   if(!allowedAttachments.has(type))throw Object.assign(new Error('Unsupported attachment type'),{status:400});
   if(size<=0||size>MAX_ATTACHMENT_BYTES)throw Object.assign(new Error('Attachment must be 1.5 MB or smaller'),{status:400});
-  const prefix=`data:${type};base64,`;
-  if(typeof a.data!=='string'||!a.data.startsWith(prefix)||a.data.length>2_300_000)throw Object.assign(new Error('Invalid attachment data'),{status:400});
+  const inspected=inspectDataUri(a.data,{allowedMime:[...allowedAttachments],maxBytes:MAX_ATTACHMENT_BYTES,declaredBytes:size});
+  if(!inspected||a.data.length>2_300_000)throw Object.assign(new Error('Attachment content does not match its type or size'),{status:400});
   return {name:String(a.name||'bulk-order-list').slice(0,180),type,size,data:a.data};
 }
 

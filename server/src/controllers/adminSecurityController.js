@@ -132,10 +132,11 @@ export async function regenerateRecoveryCodes(req,res,next){
     if(!user?.twoFactor?.enabled)return res.status(400).json({message:'Enable two-factor authentication first'});
     if(!(await user.comparePassword(String(req.body.password||''))))return res.status(401).json({message:'Password is incorrect'});
     const result=factorResult(user,req.body.code);
-    if(!result.ok)return res.status(401).json({message:'Invalid authenticator or recovery code'});
+    if(!result.ok){await recordTwoFactorFailure(req);return res.status(401).json({message:'Invalid authenticator or recovery code'});}
     const recoveryCodes=generateRecoveryCodes(8);
     user.twoFactor.recoveryCodeHashes=recoveryCodes.map(recoveryCodeHash);
     await user.save();
+    await clearTwoFactorThrottle(req);
     await audit(req,'2FA recovery codes regenerated');
     res.json({message:'New recovery codes generated. Previous codes are invalid.',recoveryCodes});
   }catch(e){next(e)}
@@ -147,11 +148,12 @@ export async function disableTwoFactor(req,res,next){
     if(!user?.twoFactor?.enabled)return res.status(400).json({message:'Two-factor authentication is not enabled'});
     if(!(await user.comparePassword(String(req.body.password||''))))return res.status(401).json({message:'Password is incorrect'});
     const result=factorResult(user,req.body.code);
-    if(!result.ok)return res.status(401).json({message:'Invalid authenticator or recovery code'});
+    if(!result.ok){await recordTwoFactorFailure(req);return res.status(401).json({message:'Invalid authenticator or recovery code'});}
     user.twoFactor.enabled=false;
     user.twoFactor.secretEnc='';user.twoFactor.pendingSecretEnc='';user.twoFactor.pendingExpiresAt=null;user.twoFactor.recoveryCodeHashes=[];user.twoFactor.enabledAt=null;
     user.sessionVersion=Number(user.sessionVersion||0)+1;
     await user.save();
+    await clearTwoFactorThrottle(req);
     await audit(req,'2FA disabled');
     res.json({message:'Two-factor authentication disabled',token:signSessionToken(user),user:safeAdmin(user)});
   }catch(e){next(e)}

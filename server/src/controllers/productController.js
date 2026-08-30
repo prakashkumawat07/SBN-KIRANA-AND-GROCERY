@@ -2,6 +2,12 @@ import mongoose from 'mongoose';
 import Product from '../models/Product.js';
 
 const escapeRegex=value=>String(value||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+const publicProduct=row=>{
+  const value=row?.toObject?row.toObject():{...row};
+  const available=Number(value.stock)>0;
+  delete value.stock;
+  return {...value,available,orderLimit:available?10:0};
+};
 
 export async function getProducts(req,res,next){
   try{
@@ -17,8 +23,8 @@ export async function getProducts(req,res,next){
         {tags:{$regex:search,$options:'i'}}
       ];
     }
-    const rows=await Product.find(filter).select('-images -costPrice -lowStockThreshold -barcode').sort({featured:-1,createdAt:-1});
-    res.json(rows);
+    const rows=await Product.find(filter).select('-images -costPrice -lowStockThreshold -barcode').sort({featured:-1,createdAt:-1}).lean();
+    res.json(rows.map(publicProduct));
   }catch(e){next(e)}
 }
 
@@ -27,6 +33,6 @@ export async function getProduct(req,res,next){
     if(!mongoose.isValidObjectId(req.params.id))return res.status(404).json({message:'Product not found'});
     const p=await Product.findById(req.params.id).select('-costPrice -lowStockThreshold -barcode');
     if(!p)return res.status(404).json({message:'Product not found'});
-    res.json(p);
+    res.json(publicProduct(p));
   }catch(e){next(e)}
 }

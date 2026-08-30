@@ -1,6 +1,7 @@
 import Product from '../models/Product.js';
 import User from '../models/User.js';
 import Offer from '../models/Offer.js';
+import {validatePassword} from '../middleware/security.js';
 
 const products=[
   {name:'Aashirvaad Atta',description:'Whole wheat flour for soft rotis.',category:'Staples',image:'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=900&q=80',price:289,mrp:320,unit:'5 kg',stock:40,featured:true},
@@ -29,12 +30,13 @@ export async function bootstrapDatabase(){
   const email=(process.env.ADMIN_EMAIL||'').trim().toLowerCase();
   const password=process.env.ADMIN_PASSWORD||'';
   if(email&&password){
+    const passwordError=validatePassword(password);
+    if(passwordError)throw new Error(`ADMIN_PASSWORD is not secure enough: ${passwordError}`);
     let admin=await User.findOne({email});
     if(!admin){
       await User.create({name:process.env.ADMIN_NAME||'SBN Admin',email,password,role:'admin'});
     }else if(admin.role!=='admin'){
-      admin.role='admin';
-      await admin.save();
+      throw new Error('ADMIN_EMAIL already belongs to a non-admin account; automatic privilege promotion is blocked');
     }
   }
 

@@ -15,4 +15,18 @@ const products=[
 {name:'Tata Salt',description:'Iodized salt for daily cooking.',category:'Staples',image:'https://images.unsplash.com/photo-1518110925495-5fe2fda0442c?auto=format&fit=crop&w=900&q=80',price:28,mrp:30,unit:'1 kg',stock:90},
 {name:'Surf Excel Matic',description:'Machine wash detergent powder.',category:'Household',image:'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=900&q=80',price:245,mrp:280,unit:'1 kg',stock:30}
 ];
-try{await connectDB();await Product.deleteMany({});for(const p of products)await Product.create(p);const email=(process.env.ADMIN_EMAIL||'admin@sbnkirana.com').toLowerCase();let admin=await User.findOne({email});if(admin){admin.name=process.env.ADMIN_NAME||'SBN Admin';admin.role='admin';admin.password=process.env.ADMIN_PASSWORD||'ChangeMe123!';await admin.save()}else await User.create({name:process.env.ADMIN_NAME||'SBN Admin',email,password:process.env.ADMIN_PASSWORD||'ChangeMe123!',role:'admin'});console.log(`Seed complete. Admin email: ${email}`)}finally{await mongoose.connection.close()}
+const email=String(process.env.ADMIN_EMAIL||'').trim().toLowerCase();
+const password=String(process.env.ADMIN_PASSWORD||'');
+if(process.env.ALLOW_DESTRUCTIVE_SEED!=='true')throw new Error('Set ALLOW_DESTRUCTIVE_SEED=true only when you intentionally want to replace all products');
+if(!email||!password)throw new Error('ADMIN_EMAIL and ADMIN_PASSWORD are required for seeding');
+if(password.length<10||password.length>128)throw new Error('ADMIN_PASSWORD must be 10 to 128 characters long');
+
+try{
+  await connectDB();
+  await Product.deleteMany({});
+  for(const product of products)await Product.create(product);
+  let admin=await User.findOne({email});
+  if(admin){admin.name=process.env.ADMIN_NAME||'SBN Admin';admin.role='admin';admin.password=password;await admin.save()}
+  else await User.create({name:process.env.ADMIN_NAME||'SBN Admin',email,password,role:'admin'});
+  console.log(`Seed complete. Admin email: ${email}`);
+}finally{await mongoose.connection.close()}

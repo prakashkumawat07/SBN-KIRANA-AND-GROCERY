@@ -5,8 +5,6 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-  schedule:
-    - cron: '30 2 * * 1'
 
 permissions:
   contents: read
@@ -14,10 +12,11 @@ permissions:
 jobs:
   audit-and-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        app: [client, admin, pos, server]
+        app: [server, client, admin, pos]
     defaults:
       run:
         working-directory: ${{ matrix.app }}
@@ -25,21 +24,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-      - name: Install dependencies
-        run: npm install --no-fund --no-audit
-      - name: Audit high severity vulnerabilities
-        run: npm audit --audit-level=high
-      - name: Build frontend
-        if: matrix.app != 'server'
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ${{ matrix.app }}/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm audit --audit-level=high
+      - if: matrix.app != 'server'
         run: npm run build
-      - name: Syntax check server entrypoints
-        if: matrix.app == 'server'
-        run: |
-          node --check src/app.js
-          node --check api/index.js
-          node --check src/controllers/authController.js
-          node --check src/controllers/payLaterKycController.js
-          node --check src/controllers/posController.js
-          node --check src/controllers/posStaffController.js
-          node --check src/routes/posRoutes.js
+      - if: matrix.app == 'server'
+        run: find src api -type f -name '*.js' -print0 | xargs -0 -n1 node --check
