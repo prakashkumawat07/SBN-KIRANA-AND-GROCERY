@@ -15,6 +15,16 @@ const quoteItemSchema=new mongoose.Schema({
   amount:{type:Number,default:0,min:0}
 },{_id:true});
 
+// Keep attachment metadata in its own sub-schema. Defining a nested object
+// inline with a field named `type` makes Mongoose interpret the entire
+// `attachment` path as a String instead of an object.
+const attachmentSchema=new mongoose.Schema({
+  name:{type:String,required:true,trim:true,maxlength:180},
+  type:{type:String,required:true,enum:['text/plain','text/csv','application/pdf','image/jpeg','image/png']},
+  size:{type:Number,required:true,min:1,max:1.5*1024*1024},
+  data:{type:String,required:true,maxlength:2_300_000}
+},{_id:false});
+
 const schema=new mongoose.Schema({
   user:{type:mongoose.Schema.Types.ObjectId,ref:'User',required:true,index:true},
   requestNo:{type:String,index:true},
@@ -30,12 +40,7 @@ const schema=new mongoose.Schema({
     pincode:{type:String,required:true,trim:true}
   },
   requestedItems:[requestedItemSchema],
-  attachment:{
-    name:String,
-    type:String,
-    size:Number,
-    data:String
-  },
+  attachment:{type:attachmentSchema,default:undefined},
   customerNote:{type:String,default:'',trim:true},
   status:{type:String,enum:['Requested','Reviewing','Quoted','Accepted','Rejected','Confirmed','Preparing','Out for Delivery','Delivered','Cancelled'],default:'Requested',index:true},
   quotation:{
