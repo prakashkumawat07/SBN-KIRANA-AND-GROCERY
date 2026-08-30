@@ -9,20 +9,29 @@ const makeBlank=()=>({name:'',brand:'',sku:'',barcode:'',category:'Staples',pric
 const imageSrc=img=>typeof img==='string'?img:img?.src||'';
 const imageThumb=img=>typeof img==='string'?img:img?.thumbnail||img?.src||'';
 
-function loadImage(file){
+async function decodeImage(file){
+  if(typeof createImageBitmap==='function'){
+    try{
+      const bitmap=await createImageBitmap(file,{imageOrientation:'from-image'});
+      if(bitmap.width&&bitmap.height)return {source:bitmap,width:bitmap.width,height:bitmap.height,cleanup:()=>bitmap.close()};
+      bitmap.close();
+    }catch{}
+  }
   return new Promise((resolve,reject)=>{
-    const url=URL.createObjectURL(file);const img=new Image();
-    img.onload=()=>{URL.revokeObjectURL(url);resolve(img)};
-    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Could not read image'))};
+    const url=URL.createObjectURL(file);const img=new Image();img.decoding='async';
+    img.onload=()=>{
+      if(!img.naturalWidth||!img.naturalHeight){URL.revokeObjectURL(url);return reject(new Error(`${file.name} has no readable image dimensions.`))}
+      resolve({source:img,width:img.naturalWidth,height:img.naturalHeight,cleanup:()=>URL.revokeObjectURL(url)});
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error(`${file.name} could not be decoded. Open it and save/export it again as JPG, PNG or WEBP.`))};
     img.src=url;
   });
 }
 
-async function imageVariant(file,maxSide,quality,maxChars){
-  const img=await loadImage(file);
-  const scale=Math.min(1,maxSide/Math.max(img.naturalWidth,img.naturalHeight));
-  const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
-  const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,canvas.width,canvas.height);
+function imageVariant(decoded,maxSide,quality,maxChars){
+  const scale=Math.min(1,maxSide/Math.max(decoded.width,decoded.height));
+  const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(decoded.width*scale));canvas.height=Math.max(1,Math.round(decoded.height*scale));
+  const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Image processing is unavailable in this browser.');ctx.drawImage(decoded.source,0,0,canvas.width,canvas.height);
   let q=quality;let data=canvas.toDataURL('image/webp',q);
   while(data.length>maxChars&&q>0.42){q-=0.08;data=canvas.toDataURL('image/webp',q)}
   if(data.length>maxChars)throw new Error('One image is still too large after compression. Choose a smaller image.');
@@ -51,9 +60,12 @@ export default function Products(){
     try{
       const added=[];
       for(const file of files){
-        const src=await imageVariant(file,1200,0.76,390000);
-        const thumbnail=await imageVariant(file,520,0.72,105000);
-        added.push({src,thumbnail,alt:form.name||file.name.replace(/\.[^.]+$/,'')});
+        const decoded=await decodeImage(file);
+        try{
+          const src=imageVariant(decoded,1200,0.76,390000);
+          const thumbnail=imageVariant(decoded,520,0.72,105000);
+          added.push({src,thumbnail,alt:form.name||file.name.replace(/\.[^.]+$/,'')});
+        }finally{decoded.cleanup()}
       }
       const next=[...form.images,...added];
       if(JSON.stringify(next).length>2400000)throw new Error('Combined image size is too large. Remove one image or use smaller files.');
