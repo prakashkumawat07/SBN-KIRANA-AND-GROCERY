@@ -9,12 +9,14 @@ import './product-first-home.css';
 import './review-notifications.css';
 import './mobile-marketplace.css';
 import './mobile-home-polish.css';
+import './product-swipe-enhancer.css';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
 import MobileBottomNav from './components/MobileBottomNav';
 import MobileAccount from './components/MobileAccount';
 import MobileCart from './components/MobileCart';
+import ProductGallerySwipeEnhancer from './components/ProductGallerySwipeEnhancer';
 import Home from './pages/Home';
 import Products from './pages/Products';
 import Deals from './pages/Deals';
@@ -52,7 +54,7 @@ function MobileHomeSwipe(){
   return null;
 }
 
-export default function App(){return <><Navbar/><MobileHomeSwipe/><Routes>
+export default function App(){return <><Navbar/><MobileHomeSwipe/><ProductGallerySwipeEnhancer/><Routes>
   <Route path="/" element={<Home/>}/>
   <Route path="/products" element={<Products/>}/>
   <Route path="/deals" element={<Deals/>}/>
