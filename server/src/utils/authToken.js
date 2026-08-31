@@ -6,10 +6,15 @@ const sessionAudience='sbn-kirana-web';
 const challengeAudience='sbn-kirana-admin-2fa';
 
 function jwtSecret(){
-  const value=process.env.JWT_SECRET||'';
-  if(!value)throw new Error('JWT secret is not configured');
-  if(process.env.NODE_ENV==='production'&&value.length<32)throw new Error('JWT secret must contain at least 32 characters in production');
-  return value;
+  const configured=process.env.JWT_SECRET||'';
+  if(process.env.NODE_ENV!=='production'){
+    if(!configured)throw new Error('JWT secret is not configured');
+    return configured;
+  }
+  if(configured.length>=32)return configured;
+  const fallback=process.env.ADMIN_2FA_ENCRYPTION_KEY||'';
+  if(fallback.length<32)throw new Error('A strong JWT_SECRET or ADMIN_2FA_ENCRYPTION_KEY must be configured in production');
+  return crypto.createHmac('sha256',fallback).update('sbn-kirana-jwt-signing-v1').digest();
 }
 
 export function signSessionToken(user){
