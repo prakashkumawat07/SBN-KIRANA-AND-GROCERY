@@ -1,17 +1,28 @@
 version: 2
 updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      github-actions:
+        patterns: ['*']
   - package-ecosystem: npm
     directory: /
     schedule: { interval: weekly }
+    open-pull-requests-limit: 5
   - package-ecosystem: npm
     directory: /server
     schedule: { interval: weekly }
+    open-pull-requests-limit: 5
   - package-ecosystem: npm
     directory: /client
     schedule: { interval: weekly }
+    open-pull-requests-limit: 5
   - package-ecosystem: npm
     directory: /admin
     schedule: { interval: weekly }
+    open-pull-requests-limit: 5
   - package-ecosystem: npm
     directory: /pos
     schedule: { interval: weekly }
+    open-pull-requests-limit: 5

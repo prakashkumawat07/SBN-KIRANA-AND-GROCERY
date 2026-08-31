@@ -8,6 +8,10 @@ on:
   schedule:
     - cron: '0 3 * * 3'
 
+concurrency:
+  group: codeql-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   security-events: write
   packages: read
@@ -18,11 +22,20 @@ jobs:
   analyze:
     name: Analyze JavaScript
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: github/codeql-action/init@v3
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@6f5948dfacef28e207b48d0905cf90c03365536d # v3
         with:
           languages: javascript-typescript
-      - uses: github/codeql-action/analyze@v3
+          queries: security-extended
+
+      - name: Analyze code
+        uses: github/codeql-action/analyze@6f5948dfacef28e207b48d0905cf90c03365536d # v3
         with:
           category: /language:javascript-typescript
